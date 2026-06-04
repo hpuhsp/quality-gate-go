@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os/exec"
 
@@ -36,7 +37,7 @@ func RunDoctor() {
 	ok := 0
 
 	for _, d := range deps {
-		if hasBin(d.bin) {
+		if shared.HasBin(d.bin) {
 			ok++
 			fmt.Printf("  ✅ %-22s %s\n", d.name, d.purpose)
 		} else {
@@ -58,19 +59,19 @@ func RunDoctor() {
 		fmt.Printf("  Detected: %s (%s)\n", proj.Language, proj.BuildTool)
 		switch proj.Language {
 		case "kotlin":
-			if !hasBin("ktlint") {
+			if !shared.HasBin("ktlint") {
 				fmt.Println("  💡 Install ktlint for auto-formatting: brew install ktlint")
 			}
 		case "java":
-			if !hasBin("google-java-format") {
+			if !shared.HasBin("google-java-format") {
 				fmt.Println("  💡 Install google-java-format: brew install google-java-format")
 			}
 		case "javascript":
-			if !hasBin("prettier") && !hasBin("npx") {
+			if !shared.HasBin("prettier") && !shared.HasBin("npx") {
 				fmt.Println("  💡 Install prettier: npm install -g prettier")
 			}
 		case "go":
-			if !hasBin("gofmt") {
+			if !shared.HasBin("gofmt") {
 				fmt.Println("  💡 gofmt should come with Go. Check your Go installation.")
 			}
 		}
@@ -121,10 +122,6 @@ func RunDoctor() {
 	fmt.Println("\nRun 'quality-gate doctor' again to verify.")
 }
 
-func hasBin(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}
 
 func runInstall(cmd string) error {
 	c := exec.Command("sh", "-c", cmd)

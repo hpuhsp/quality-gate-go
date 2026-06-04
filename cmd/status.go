@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os"
 	"os/exec"
@@ -25,8 +26,8 @@ func RunStatus() {
 	qgHooks := filepath.Join(home, ".quality-gate", "hooks")
 	enabled := hooksPath == qgHooks
 
-	preCommitOk := fileExists(filepath.Join(qgHooks, "pre-commit"))
-	prePushOk := fileExists(filepath.Join(qgHooks, "pre-push"))
+	preCommitOk := shared.FileExists(filepath.Join(qgHooks, "pre-commit"))
+	prePushOk := shared.FileExists(filepath.Join(qgHooks, "pre-push"))
 
 	fmt.Println("quality-gate status")
 	fmt.Println("──────────────────")
@@ -57,7 +58,3 @@ func fileIcon(v bool) string {
 	return "❌ missing"
 }
 
-func fileExists(p string) bool {
-	_, err := os.Stat(p)
-	return err == nil
-}

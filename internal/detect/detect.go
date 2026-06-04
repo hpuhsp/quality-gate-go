@@ -2,6 +2,7 @@
 package detect
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,29 +22,29 @@ func Detect(root string) Result {
 	r := Result{Language: "unknown", BuildTool: "unknown", TestFramework: "unknown"}
 
 	switch {
-	case fileExists(root, "build.gradle.kts") || hasExt(root, ".kt"):
+	case shared.FileExists(filepath.Join(root, "build.gradle.kts")) || hasExt(root, ".kt"):
 		r.Language = "kotlin"
-	case fileExists(root, "build.gradle") || hasExt(root, ".java"):
+	case shared.FileExists(filepath.Join(root, "build.gradle")) || hasExt(root, ".java"):
 		r.Language = "java"
-	case fileExists(root, "package.json"):
+	case shared.FileExists(filepath.Join(root, "package.json")):
 		r.Language = "javascript"
-	case fileExists(root, "go.mod"):
+	case shared.FileExists(filepath.Join(root, "go.mod")):
 		r.Language = "go"
 	}
 
 	// Build tool
 	switch r.Language {
 	case "kotlin", "java":
-		if fileExists(root, "gradlew") {
+		if shared.FileExists(filepath.Join(root, "gradlew")) {
 			r.BuildTool = "gradle-wrapper"
 		} else {
 			r.BuildTool = "gradle"
 		}
 	case "javascript":
 		switch {
-		case fileExists(root, "pnpm-lock.yaml"):
+		case shared.FileExists(filepath.Join(root, "pnpm-lock.yaml")):
 			r.BuildTool = "pnpm"
-		case fileExists(root, "yarn.lock"):
+		case shared.FileExists(filepath.Join(root, "yarn.lock")):
 			r.BuildTool = "yarn"
 		default:
 			r.BuildTool = "npm"
@@ -68,7 +69,7 @@ func Detect(root string) Result {
 	}
 
 	// Dockerfile
-	r.HasDockerfile = fileExists(root, "Dockerfile") || fileExists(root, filepath.Join("docker", "Dockerfile"))
+	r.HasDockerfile = shared.FileExists(filepath.Join(root, "Dockerfile")) || shared.FileExists(filepath.Join(root, filepath.Join("docker", "Dockerfile")))
 
 	return r
 }
@@ -104,10 +105,7 @@ func hasGoTestFiles(root string) bool {
 	return found
 }
 
-func fileExists(root, name string) bool {
-	_, err := os.Stat(filepath.Join(root, name))
-	return err == nil
-}
+
 
 func dirExists(p string) bool {
 	info, err := os.Stat(p)

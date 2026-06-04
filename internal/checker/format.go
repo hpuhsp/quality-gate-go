@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os/exec"
 	"path/filepath"
@@ -17,7 +18,7 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 
 	switch proj.Language {
 	case "kotlin":
-		if hasBin("ktlint") {
+		if shared.HasBin("ktlint") {
 			ktFiles := filterByExt(staged, ".kt")
 			if formatFiles("ktlint", ktFiles...) {
 				for _, f := range ktFiles {
@@ -28,7 +29,7 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 			issues = append(issues, "ktlint not installed — Kotlin formatting skipped")
 		}
 	case "java":
-		if hasBin("google-java-format") {
+		if shared.HasBin("google-java-format") {
 			javaFiles := filterByExt(staged, ".java")
 			if formatFiles("google-java-format", append([]string{"--replace"}, javaFiles...)...) {
 				for _, f := range javaFiles {
@@ -39,10 +40,10 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 			issues = append(issues, "google-java-format not installed — Java formatting skipped")
 		}
 	case "javascript":
-		if hasBin("prettier") || hasBin("npx") {
+		if shared.HasBin("prettier") || shared.HasBin("npx") {
 			jsFiles := filterByExt(staged, ".js", ".ts", ".jsx", ".tsx", ".json", ".css", ".md", ".yml", ".yaml")
 			args := []string{"prettier", "--write"}
-			if !hasBin("prettier") {
+			if !shared.HasBin("prettier") {
 				args = []string{"npx", "prettier", "--write"}
 			}
 			if len(jsFiles) > 0 {
@@ -81,10 +82,6 @@ func formatFiles(cmd string, files ...string) bool {
 	return err == nil
 }
 
-func hasBin(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}
 
 func PrintFormatIssues(issues []string) {
 	for _, i := range issues {

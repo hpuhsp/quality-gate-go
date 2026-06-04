@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os"
 	"os/exec"
@@ -59,7 +60,7 @@ Press Enter to accept defaults.
 	deps := langDeps(proj.Language)
 	missing := make([]toolDep, 0)
 	for _, d := range deps {
-		if !hasBin(d.bin) {
+		if !shared.HasBin(d.bin) {
 			missing = append(missing, d)
 		}
 	}
@@ -67,7 +68,7 @@ Press Enter to accept defaults.
 	if len(missing) > 0 {
 		fmt.Println("─── Required Tools ───")
 		for _, d := range deps {
-			if hasBin(d.bin) {
+			if shared.HasBin(d.bin) {
 				fmt.Printf("  ✅ %s (%s)\n", d.bin, d.purpose)
 			} else {
 				fmt.Printf("  ❌ %s — %s\n", d.bin, d.install)
