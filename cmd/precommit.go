@@ -18,12 +18,12 @@ func RunPreCommit() {
 	secretResult := checker.SecretScan()
 	if !secretResult.OK {
 		fmt.Print("\n❌ SECRET SCAN FAILED\n")
-		checker.PrintFindings(secretResult.Findings, "secret")
+		checker.PrintFindings(secretResult.Findings)
 		fmt.Print("  Fix: remove secrets before committing.\n\n")
 		hasErrors = true
 	} else if len(secretResult.Findings) > 0 {
 		fmt.Println("⚠️  Secret scan: non-blocking patterns found")
-		checker.PrintFindings(secretResult.Findings, "secret")
+		checker.PrintFindings(secretResult.Findings)
 	}
 
 	// Gate 2: Syntax check

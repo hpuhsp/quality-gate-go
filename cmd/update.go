@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 )
 
 const updateURL = "https://github.com/hpuhsp/quality-gate/releases/latest/download/quality-gate-"
@@ -42,38 +42,40 @@ func RunUpdate() {
 }
 
 func fetchLatestVersion() (string, error) {
-	resp, err := http.Get("https://api.github.com/repos/hpuhsp/quality-gate/releases/latest")
+	resp, err := http.Get("https://api.github.com/repos/hpuhsp/quality-gate-go/releases/latest")
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	s := string(body)
-	// Extract tag_name
-	idx := strings.Index(s, `"tag_name":"`)
-	if idx < 0 {
-		return "", fmt.Errorf("no tag_name")
+
+	var release struct {
+		TagName string `json:"tag_name"`
 	}
-	rest := s[idx+len(`"tag_name":"`):]
-	end := strings.Index(rest, `"`)
-	if end < 0 {
-		return "", fmt.Errorf("malformed")
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return "", err
 	}
-	return strings.TrimPrefix(rest[:end], "v"), nil
+	if release.TagName == "" {
+		return "", fmt.Errorf("no tag_name in release")
+	}
+	// Strip "v" prefix: v2.0.0 → 2.0.0
+	if len(release.TagName) > 1 && release.TagName[0] == 'v' {
+		return release.TagName[1:], nil
+	}
+	return release.TagName, nil
 }
 
 func downloadAndReplace(version string) error {
 	bin, _ := os.Executable()
 	goos := runtime.GOOS
 	goarch := runtime.GOARCH
-
-	url := fmt.Sprintf("%s%s-%s-%s", updateURL, version, goos, goarch)
+	// macOS should use amd64 binary (x86_64 emulation works on arm64)
 	if goos == "darwin" {
 		goarch = "amd64"
 	}
-	_ = url
 
-	// Simple approach: re-download binary
+	url := fmt.Sprintf("%s%s-%s-%s", updateURL, version, goos, goarch)
+
+	// Download to temp, then replace
 	tmp := filepath.Join(os.TempDir(), "quality-gate-update")
 	resp, err := http.Get(url)
 	if err != nil {
@@ -94,30 +96,3 @@ func downloadAndReplace(version string) error {
 	return os.Rename(tmp, bin)
 }
 
-// RunPrePush placeholder — CI handles real tests.
-func RunPrePush() {
-	fmt.Println("⚠️  Unit tests are handled by CI, not local pre-push.")
-	fmt.Println("   Pre-push hook is active but skips tests by default.")
-	fmt.Println("   Run 'quality-gate setup' to enable local test execution.")
-}
-
-// RunGenTests placeholder for AI test generation.
-func RunGenTests(args ...string) {
-	apiKey := os.Getenv("ANTHROPIC_API_KEY")
-	if apiKey == "" {
-		fmt.Println("❌ ANTHROPIC_API_KEY not set.")
-		fmt.Println("   export ANTHROPIC_API_KEY=sk-ant-...")
-		os.Exit(1)
-	}
-	target := ""
-	if len(args) > 2 {
-		target = args[len(args)-1]
-	}
-	if target != "" {
-		fmt.Printf("Generating tests for %s...\n", target)
-	} else {
-		fmt.Println("Generating tests for changed code...")
-	}
-	fmt.Println("⚠️  AI test generation requires gstack CLI or claude CLI.")
-	fmt.Println("   Install: npm install -g gstack")
-}

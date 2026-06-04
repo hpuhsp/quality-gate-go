@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+// Pre-compiled regex patterns (package level, not recompiled per call)
+var (
+	tagRe       = regexp.MustCompile(`</?([a-zA-Z][\w-]*)`)
+	emptyCatchRe = regexp.MustCompile(`catch\s*\([^)]*\)\s*\{\s*\}`)
+	ifdefRe    = regexp.MustCompile(`(?m)^#ifdef|#ifndef|#if\b`)
+	endifRe    = regexp.MustCompile(`(?m)^#endif`)
+)
+
 var extToLang = map[string]string{
 	".java": "java", ".kt": "kotlin", ".kts": "kotlin",
 	".js": "js", ".jsx": "js", ".ts": "ts", ".tsx": "ts",
@@ -67,14 +75,21 @@ func SyntaxCheck() CheckResult {
 
 func checkFile(file, lang string) []string {
 	var issues []string
+	// Skip files larger than 1MB
+	if info, err := os.Stat(file); err != nil || info.Size() > 1<<20 {
+		return nil
+	}
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return issues
+		return nil
 	}
 	content := string(data)
 
-	// Universal bracket check
-	issues = append(issues, checkBrackets(content, file)...)
+	// Universal bracket check (skip for Go — gofmt handles it better,
+	// and regex-heavy Go source can false-positive on bracket matching).
+	if lang != "go" {
+		issues = append(issues, checkBrackets(content, file)...)
+	}
 
 	switch lang {
 	case "js", "ts":
@@ -97,20 +112,11 @@ func checkBrackets(content, file string) []string {
 	var issues []string
 	stack := make([]rune, 0)
 	pairs := map[rune]rune{'{': '}', '[': ']', '(': ')'}
-	openCount := map[rune]int{'{': 0, '(': 0}
-	closeCount := map[rune]int{'}': 0, ')': 0}
 
 	for _, ch := range content {
 		if ch == '{' || ch == '[' || ch == '(' {
-			openCount[ch]++
 			stack = append(stack, ch)
 		} else if ch == '}' || ch == ']' || ch == ')' {
-			if ch == '}' {
-				closeCount['}']++
-			}
-			if ch == ')' {
-				closeCount[')']++
-			}
 			if len(stack) == 0 {
 				issues = append(issues, fmt.Sprintf("%s: unexpected '%c'", file, ch))
 				break
@@ -151,7 +157,6 @@ func checkNodeSyntax(file string) []string {
 func checkVue(content, file string) []string {
 	var issues []string
 	// Check template tags
-	tagRe := regexp.MustCompile(`</?([a-zA-Z][\w-]*)`)
 	selfClose := map[string]bool{"br": true, "hr": true, "img": true, "input": true, "meta": true, "link": true}
 	tagStack := make([]string, 0)
 	for _, m := range tagRe.FindAllStringSubmatch(content, -1) {
@@ -174,7 +179,7 @@ func checkVue(content, file string) []string {
 func checkJVM(content, file string) []string {
 	var issues []string
 	// Empty catch
-	if matched, _ := regexp.MatchString(`catch\s*\([^)]*\)\s*\{\s*\}`, content); matched {
+	if matched := emptyCatchRe.MatchString(content); matched {
 		issues = append(issues, fmt.Sprintf("%s: empty catch block(s)", file))
 	}
 	// Unclosed string
@@ -186,8 +191,8 @@ func checkJVM(content, file string) []string {
 
 func checkCpp(content, file string) []string {
 	var issues []string
-	ifdefs := len(regexp.MustCompile(`(?m)^#ifdef|#ifndef|#if\b`).FindAllString(content, -1))
-	endifs := len(regexp.MustCompile(`(?m)^#endif`).FindAllString(content, -1))
+	ifdefs := len(ifdefRe.FindAllString(content, -1))
+	endifs := len(endifRe.FindAllString(content, -1))
 	if ifdefs != endifs {
 		issues = append(issues, fmt.Sprintf("%s: preprocessor imbalance (#if*= %d, #endif= %d)", file, ifdefs, endifs))
 	}

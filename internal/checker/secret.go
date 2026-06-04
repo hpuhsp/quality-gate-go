@@ -59,6 +59,10 @@ func SecretScan() CheckResult {
 		if skipExt.MatchString(file) || strings.Contains(file, "node_modules/") {
 			continue
 		}
+		// Skip files larger than 1MB
+		if info, err := os.Stat(file); err != nil || info.Size() > 1<<20 {
+			continue
+		}
 		data, err := os.ReadFile(file)
 		if err != nil {
 			continue
@@ -103,7 +107,7 @@ func getStagedFiles() []string {
 }
 
 // PrintFindings formats findings to stdout.
-func PrintFindings(findings []Finding, gate string) {
+func PrintFindings(findings []Finding) {
 	for _, f := range findings {
 		fmt.Printf("  %s:%d — %s [%s]\n", f.File, f.Line, f.Pattern, f.Severity)
 	}
