@@ -108,7 +108,12 @@ quality-gate enable
 ```
 
 远程 `quality-gate-config.yml` 与本地配置合并。
-\n## 🚀 新特性 (Develop)\n- **项目级配置:** 支持 `.quality-gate.yaml`。\n- **规则同步:** 支持远程拉取最新安全规则。\n- **性能优化:** 仅扫描增量文件。\n- **自动修复:** 可在 setup 阶段开启自动格式化修复。
+
+## 🚀 新特性 (Develop)
+- **项目级配置:** 支持 `.quality-gate.yaml`。
+- **规则同步:** 支持远程拉取最新安全规则。
+- **性能优化:** 仅扫描增量文件。
+- **自动修复:** 可在 setup 阶段开启自动格式化修复。
 
 ## 为什么选择 quality-gate-go？(对比 Husky)
 **Husky** 是前端生态中非常优秀的 Git Hook 工具，但它强依赖 Node.js 环境。在涵盖 Java、Go、Python、Android、Vue 的多技术栈企业研发团队中，为了推行代码门禁而强制所有开发者安装 Node.js，推广阻力极大，环境配置成本极高。
