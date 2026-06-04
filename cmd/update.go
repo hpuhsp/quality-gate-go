@@ -3,12 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+		"net/http"
 	"os"
-	"path/filepath"
-	"runtime"
-)
+	"os/exec"
+		)
 
 const updateURL = "https://github.com/hpuhsp/quality-gate/releases/latest/download/quality-gate-"
 
@@ -19,7 +17,13 @@ func RunUpdate() {
 	// Check latest version from GitHub releases
 	latest, err := fetchLatestVersion()
 	if err != nil {
-		fmt.Println("⚠️  Could not check latest version.")
+		fmt.Println("⚠️  Could not fetch latest version (network/rate-limit). Falling back to direct update...")
+		fmt.Println("Updating via go install...")
+		if err := downloadAndReplace(""); err != nil {
+			fmt.Printf("❌ Update failed: %v\n", err)
+			return
+		}
+		fmt.Println("✅ Updated successfully")
 		return
 	}
 
@@ -42,57 +46,29 @@ func RunUpdate() {
 }
 
 func fetchLatestVersion() (string, error) {
-	resp, err := http.Get("https://api.github.com/repos/hpuhsp/quality-gate-go/releases/latest")
+	resp, err := http.Get("https://api.github.com/repos/hpuhsp/quality-gate-go/tags")
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
-	var release struct {
-		TagName string `json:"tag_name"`
+	var tags []struct {
+		Name string `json:"name"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil || len(tags) == 0 {
 		return "", err
 	}
-	if release.TagName == "" {
+	tagName := tags[0].Name
+	if tagName == "" {
 		return "", fmt.Errorf("no tag_name in release")
 	}
 	// Strip "v" prefix: v2.0.0 → 2.0.0
-	if len(release.TagName) > 1 && release.TagName[0] == 'v' {
-		return release.TagName[1:], nil
+	if len(tagName) > 1 && tagName[0] == 'v' {
+		return tagName[1:], nil
 	}
-	return release.TagName, nil
+	return tagName, nil
 }
 
 func downloadAndReplace(version string) error {
-	bin, _ := os.Executable()
-	goos := runtime.GOOS
-	goarch := runtime.GOARCH
-	// macOS should use amd64 binary (x86_64 emulation works on arm64)
-	if goos == "darwin" {
-		goarch = "amd64"
-	}
-
-	url := fmt.Sprintf("%s%s-%s-%s", updateURL, version, goos, goarch)
-
-	// Download to temp, then replace
-	tmp := filepath.Join(os.TempDir(), "quality-gate-update")
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(tmp, data, 0755); err != nil {
-		return err
-	}
-
-	// Replace current binary
-	// On macOS/Linux: move tmp → bin
-	return os.Rename(tmp, bin)
+	return fmt.Errorf("Please run: git clone https://github.com/hpuhsp/quality-gate-go.git && cd quality-gate-go && go install .")
 }
-
