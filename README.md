@@ -109,3 +109,11 @@ quality-gate enable
 
 The remote `quality-gate-config.yml` is fetched and merged with local settings.
 \n## 🚀 New Features in Develop\n- **Project-level config:** `.quality-gate.yaml` support.\n- **Auto-update rules:** Sync security rules from remote.\n- **Staged files only:** Optimized performance.\n- **Auto-fix:** Configurable via `quality-gate setup --auto-fix=true`.
+
+## Why quality-gate-go? (vs. Husky)
+While tools like **Husky** are excellent for pure frontend ecosystems, they require a Node.js environment to run. In a polyglot enterprise team (Java, Go, Python, Vue, Android), forcing every backend and mobile developer to install Node.js just for Git hooks creates immense friction.
+
+**quality-gate-go** solves this:
+- 🚀 **Zero Dependencies:** Distributed as a single compiled Go binary. No Node/NPM required.
+- ⚡ **Lightning Fast:** <10ms startup time, offering a frictionless developer experience.
+- 🌍 **Polyglot Ready:** Instantly deployable across backend, frontend, and mobile repositories without environmental headaches.
