@@ -50,8 +50,10 @@ go install github.com/hpuhsp/quality-gate-go@latest
 
 ```bash
 cd your-project
-quality-gate enable        # 一次性：激活钩子
-quality-gate status        # 查看状态和项目检测
+quality-gate setup          # 交互式向导：检测项目、安装工具
+quality-gate doctor         # 验证所有依赖
+quality-gate enable         # 激活 4 道闸门
+quality-gate status         # 查看状态和项目检测
 ```
 
 之后每次 `git commit` 自动执行 4 道闸门。
@@ -72,13 +74,14 @@ quality-gate status        # 查看状态和项目检测
 ## 命令
 
 ```
-quality-gate setup        首次配置向导
-quality-gate update       自更新到最新版
+quality-gate setup        首次配置向导：检测项目、安装工具
+quality-gate doctor       检查并自动安装依赖
 quality-gate enable       激活 4 道闸门
 quality-gate disable      关闭
 quality-gate status       查看状态和项目检测
+quality-gate update       检查最新版本
 quality-gate tool         可选工具
-  tool gen-tests          AI 生成单元测试（需 ANTHROPIC_API_KEY）
+  tool gen-tests          [实验性] AI 生成测试（需 gstack CLI）
 ```
 
 ## 原理

@@ -50,8 +50,10 @@ go install github.com/hpuhsp/quality-gate-go@latest
 
 ```bash
 cd your-project
-quality-gate enable        # One-time setup: activates hooks
-quality-gate status        # See what's active and detected
+quality-gate setup          # Interactive wizard: detect project, install tools
+quality-gate doctor         # Verify all dependencies
+quality-gate enable         # Activate 4-gate pre-commit hook
+quality-gate status         # See what's active and detected
 ```
 
 That's it. Every `git commit` now runs 4 gates.
@@ -72,13 +74,14 @@ Syntax check: Java · Kotlin · JavaScript · TypeScript · C# · C++ · Go · S
 ## Commands
 
 ```
-quality-gate setup        First-run wizard
-quality-gate update       Self-update to latest version
+quality-gate setup        First-run wizard: detect project, install tools
+quality-gate doctor       Check & auto-install dependencies
 quality-gate enable       Activate 4-gate pre-commit hook
 quality-gate disable      Deactivate hooks
 quality-gate status       Show status and project detection
+quality-gate update       Check for latest version
 quality-gate tool         Optional tools
-  tool gen-tests          AI-generate unit tests (needs ANTHROPIC_API_KEY)
+  tool gen-tests          [experimental] AI-generate tests (needs gstack CLI)
 ```
 
 ## How It Works
