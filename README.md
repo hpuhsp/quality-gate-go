@@ -122,3 +122,7 @@ While tools like **Husky** are excellent for pure frontend ecosystems, they requ
 - 🚀 **Zero Dependencies:** Distributed as a single compiled Go binary. No Node/NPM required.
 - ⚡ **Lightning Fast:** <10ms startup time, offering a frictionless developer experience.
 - 🌍 **Polyglot Ready:** Instantly deployable across backend, frontend, and mobile repositories without environmental headaches.
+
+## Zero-Trust Dual-Layer Architecture
+- **Local (DX Layer):** `quality-gate-go` provides instant, millisecond feedback and gentle nudges to update. It prioritizes developer experience and never blocks your commit due to network issues.
+- **Remote (Enforcement Layer):** Your CI pipeline (e.g., GitLab CI) acts as the ultimate source of truth, running the latest rules to enforce compliance and nudging developers to sync local tools.
