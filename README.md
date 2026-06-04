@@ -6,16 +6,43 @@
 
 ## Install
 
+### macOS
+
 ```bash
-# macOS (amd64)
+# Intel
 curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-darwin-amd64 -o /usr/local/bin/quality-gate
 chmod +x /usr/local/bin/quality-gate
 
-# macOS (arm64 / Apple Silicon)
+# Apple Silicon
 curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-darwin-arm64 -o /usr/local/bin/quality-gate
 chmod +x /usr/local/bin/quality-gate
+```
 
-# Build from source (requires Go 1.22+)
+### Linux
+
+```bash
+# amd64
+curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-linux-amd64 -o /usr/local/bin/quality-gate
+chmod +x /usr/local/bin/quality-gate
+
+# arm64
+curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-linux-arm64 -o /usr/local/bin/quality-gate
+chmod +x /usr/local/bin/quality-gate
+```
+
+### Windows
+
+```powershell
+# PowerShell (run as Administrator)
+Invoke-WebRequest https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-windows-amd64.exe -OutFile "$env:LOCALAPPDATA\quality-gate\quality-gate.exe"
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:LOCALAPPDATA\quality-gate", "User")
+```
+
+Or download from [releases page](https://github.com/hpuhsp/quality-gate-go/releases/latest).
+
+### Build from source
+
+```bash
 go install github.com/hpuhsp/quality-gate-go@latest
 ```
 
