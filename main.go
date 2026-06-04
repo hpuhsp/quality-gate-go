@@ -16,6 +16,8 @@ func main() {
 	switch os.Args[1] {
 	case "setup":
 		cmd.RunSetup()
+	case "doctor":
+		cmd.RunDoctor()
 	case "update":
 		cmd.RunUpdate()
 	case "enable":
@@ -50,6 +52,7 @@ func printHelp() {
 	fmt.Printf(`quality-gate v%s — Shift-Left Quality Gates
 
   setup       First-run wizard
+  doctor      Check & auto-install dependencies
   update      Update to latest version
   enable      Activate 4-gate pre-commit hook
   disable     Deactivate hooks
