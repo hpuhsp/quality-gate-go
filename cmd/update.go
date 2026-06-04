@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 		"net/http"
-	"os"
-	"os/exec"
+	
+	
 		)
 
 const updateURL = "https://github.com/hpuhsp/quality-gate/releases/latest/download/quality-gate-"
