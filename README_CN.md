@@ -108,3 +108,4 @@ quality-gate enable
 ```
 
 远程 `quality-gate-config.yml` 与本地配置合并。
+\n## 🚀 新特性 (Develop)\n- **项目级配置:** 支持 `.quality-gate.yaml`。\n- **规则同步:** 支持远程拉取最新安全规则。\n- **性能优化:** 仅扫描增量文件。\n- **自动修复:** 可在 setup 阶段开启自动格式化修复。
