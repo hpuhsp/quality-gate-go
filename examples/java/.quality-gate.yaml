@@ -1,0 +1,7 @@
+# Quality Gate Config for Java / Spring Boot
+minCoverage: "70"
+autoFormat: "true"
+runTestsOnPush: "yes"
+customHooks:
+  # Check XML well-formedness or run quick maven validations
+  "*.xml": "mvn clean validate -q"

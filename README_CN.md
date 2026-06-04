@@ -126,3 +126,10 @@ quality-gate enable
 ## 零信任双层防御架构 (Zero-Trust)
 - **本地门禁（体验层）：** 尽早暴露代码问题，提供极速反馈与异步非阻塞的更新提示。如果网络波动，规则拉取自动降级，绝不卡死提交。
 - **远端流水线（合规层）：** GitLab CI / Jenkins 永远运行最新规则进行兜底拦截，倒逼开发者对齐企业标准。
+
+## 配置参考示例
+请查看 `examples/` 目录，获取针对不同技术栈的最佳实践 `.quality-gate.yaml` 配置文件：
+- [Java / Spring Boot 项目](examples/java/.quality-gate.yaml)
+- [Android (Kotlin/Gradle) 项目](examples/android/.quality-gate.yaml)
+- [iOS (Swift) 项目](examples/ios/.quality-gate.yaml)
+- [Vue / 前端 项目](examples/vue/.quality-gate.yaml)

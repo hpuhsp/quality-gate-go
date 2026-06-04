@@ -126,3 +126,10 @@ While tools like **Husky** are excellent for pure frontend ecosystems, they requ
 ## Zero-Trust Dual-Layer Architecture
 - **Local (DX Layer):** `quality-gate-go` provides instant, millisecond feedback and gentle nudges to update. It prioritizes developer experience and never blocks your commit due to network issues.
 - **Remote (Enforcement Layer):** Your CI pipeline (e.g., GitLab CI) acts as the ultimate source of truth, running the latest rules to enforce compliance and nudging developers to sync local tools.
+
+## Configuration Examples
+Check out the `examples/` directory for reference `.quality-gate.yaml` configurations tailored for different tech stacks:
+- [Java / Spring Boot](examples/java/.quality-gate.yaml)
+- [Android (Kotlin/Gradle)](examples/android/.quality-gate.yaml)
+- [iOS (Swift)](examples/ios/.quality-gate.yaml)
+- [Vue / Frontend](examples/vue/.quality-gate.yaml)
