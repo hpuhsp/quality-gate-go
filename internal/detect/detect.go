@@ -93,7 +93,7 @@ func detectJSTestFramework(root string) string {
 
 func hasGoTestFiles(root string) bool {
 	found := false
-	filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
+	filepath.WalkDir(root, func(p string, d os.DirEntry, err error) error {
 		if err != nil || found {
 			return nil
 		}

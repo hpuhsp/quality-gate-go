@@ -2,7 +2,6 @@
 minCoverage: "0"
 autoFormat: "true"
 runTestsOnPush: "no"
-customHooks:
   # Catch gradle configuration issues quickly
   "*.gradle": "./gradlew properties --dry-run -q"
   "*.gradle.kts": "./gradlew properties --dry-run -q"

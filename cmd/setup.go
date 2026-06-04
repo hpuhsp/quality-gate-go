@@ -130,7 +130,7 @@ runTestsOnPush: %s
 	// ── API key note ──────────────────────────────────────────────────
 	if apiKey != "" {
 		fmt.Printf("\n⚠️  API key NOT stored. Persist it:\n")
-		fmt.Printf("   echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc\n", apiKey)
+		fmt.Print("   echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc\n")
 	}
 
 	fmt.Printf("\n✅ Setup complete! Config: %s\n\n", configPath)

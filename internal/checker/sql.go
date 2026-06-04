@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"regexp"
 	"strings"
@@ -39,7 +40,7 @@ func SQLCheck() CheckResult {
 		if !srcExt.MatchString(file) {
 			continue
 		}
-		data, err := safeReadFile(file)
+		data, err := shared.SafeReadFile(file)
 		if err != nil {
 			continue
 		}
@@ -62,6 +63,7 @@ func SQLCheck() CheckResult {
 	for _, f := range result.Findings {
 		if f.Severity == "critical" {
 			result.OK = false
+			break
 		}
 	}
 	return result

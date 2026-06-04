@@ -2,7 +2,6 @@
 minCoverage: "80"
 autoFormat: "true"
 runTestsOnPush: "yes"
-customHooks:
   # Fast local linting for JS and Vue components
   "*.vue": "npx eslint --quiet"
   "*.js": "npx eslint --quiet"

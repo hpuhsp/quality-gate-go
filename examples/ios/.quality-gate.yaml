@@ -2,6 +2,5 @@
 minCoverage: "50"
 autoFormat: "false" # Formatting is often handled by Xcode automatically
 runTestsOnPush: "no"
-customHooks:
   # Fast linting for Swift files
   "*.swift": "swiftlint lint --quiet"

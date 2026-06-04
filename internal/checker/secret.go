@@ -1,10 +1,9 @@
 package checker
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -61,7 +60,7 @@ func SecretScan() CheckResult {
 		if skipExt.MatchString(file) || strings.Contains(file, "node_modules/") {
 			continue
 		}
-		data, err := safeReadFile(file)
+		data, err := shared.SafeReadFile(file)
 		if err != nil {
 			continue
 		}
@@ -88,29 +87,6 @@ func SecretScan() CheckResult {
 		}
 	}
 	return result
-}
-
-// safeReadFile reads a file within repo boundaries, preventing path traversal.
-func safeReadFile(file string) ([]byte, error) {
-	abs, err := filepath.Abs(file)
-	if err != nil {
-		return nil, err
-	}
-	// Resolve symlinks and clean path
-	real, err := filepath.EvalSymlinks(abs)
-	if err != nil {
-		real = abs // fallback if symlink resolution fails
-	}
-	clean := filepath.Clean(real)
-	// Validate path stays within working directory
-	if strings.Contains(clean, "..") {
-		return nil, fmt.Errorf("path traversal blocked: %s", file)
-	}
-	// Skip files larger than 1MB
-	if info, err := os.Stat(clean); err != nil || info.Size() > 1<<20 {
-		return nil, fmt.Errorf("file too large or unreadable: %s", file)
-	}
-	return os.ReadFile(clean)
 }
 
 func getStagedFiles() []string {

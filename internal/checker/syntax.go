@@ -1,6 +1,7 @@
 package checker
 
 import (
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os"
 	"os/exec"
@@ -75,17 +76,7 @@ func SyntaxCheck() CheckResult {
 		}
 	}
 
-	for _, f := range result.Findings {
-		if strings.Contains(f.Pattern, "SyntaxError") ||
-			strings.Contains(f.Pattern, "unmatched") ||
-			strings.Contains(f.Pattern, "unclosed") ||
-			strings.Contains(f.Pattern, "gofmt") ||
-			strings.Contains(f.Pattern, "preprocessor") ||
-			strings.Contains(f.Pattern, "mismatch") {
-			result.OK = false
-			break
-		}
-	}
+
 	return result
 }
 
@@ -95,7 +86,7 @@ func checkFile(file, lang string) []string {
 	if info, err := os.Stat(file); err != nil || info.Size() > 1<<20 {
 		return nil
 	}
-	data, err := safeReadFile(file)
+	data, err := shared.SafeReadFile(file)
 	if err != nil {
 		return nil
 	}

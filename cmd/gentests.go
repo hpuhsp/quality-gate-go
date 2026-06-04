@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"path/filepath"
 	"strings"
 
@@ -47,7 +48,7 @@ func RunGenTests(args ...string) {
 	// Collect sources
 	var sources []string
 	if target != "" {
-		data, err := os.ReadFile(target)
+		data, err := shared.SafeReadFile(target)
 		if err != nil {
 			fmt.Printf("❌ Cannot read %s: %v\n", target, err)
 			os.Exit(1)
@@ -60,7 +61,7 @@ func RunGenTests(args ...string) {
 			if f == "" || strings.Contains(f, "test") || strings.Contains(f, "Test") {
 				continue
 			}
-			data, err := os.ReadFile(f)
+			data, err := shared.SafeReadFile(f)
 			if err != nil {
 				continue
 			}
@@ -211,7 +212,7 @@ func parseAndWriteTests(response, testDir, ext string) int {
 			fileName = fmt.Sprintf("GeneratedTest%d.%s", written+1, ext)
 		}
 		if !strings.Contains(fileName, ".") {
-			fileName += "." + ext
+			fileName = strings.TrimSuffix(fileName, "."+ext) + "_test." + ext
 		}
 
 		filePath := filepath.Join(testDir, fileName)
