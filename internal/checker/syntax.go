@@ -13,7 +13,8 @@ import (
 // Pre-compiled regex patterns (package level, not recompiled per call)
 var (
 	tagRe       = regexp.MustCompile(`</?([a-zA-Z][\w-]*)`)
-	emptyCatchRe = regexp.MustCompile(`catch\s*\([^)]*\)\s*\{\s*\}`)
+	// Match empty catch blocks including those with only comments inside
+	emptyCatchRe = regexp.MustCompile(`catch\s*\([^)]*\)\s*\{\s*(?://[^\n]*)?\s*\}`)
 	ifdefRe    = regexp.MustCompile(`(?m)^#ifdef|#ifndef|#if\b`)
 	endifRe    = regexp.MustCompile(`(?m)^#endif`)
 )

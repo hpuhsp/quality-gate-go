@@ -1,0 +1,12 @@
+plugins {
+    id 'com.android.application'
+    id 'java-library'
+}
+
+android {
+    compileSdk 34
+    defaultConfig {
+        minSdk 24
+        targetSdk 34
+    }
+}

@@ -59,7 +59,8 @@ func RunPreCommit() {
 		checker.PrintSQLLines(sqlResult.Findings)
 	}
 
-	// Gate 4: Auto-format
+	// Gate 4: Auto-format (always counted, warning-only if formatter missing)
+	gatesTotal++
 	if proj.Language != "unknown" {
 		_, issues := checker.FormatCheck(proj)
 		if len(issues) > 0 {
@@ -83,4 +84,3 @@ func RunPreCommit() {
 	}
 	fmt.Printf("✅ pre-commit passed%s\n", tags)
 }
-// Feature: Fail-safe Sync with timeout implemented

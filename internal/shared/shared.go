@@ -23,16 +23,27 @@ func FileExists(path string) bool {
 
 // SafeReadFile reads a file with path traversal protection and 1MB size limit.
 func SafeReadFile(file string) ([]byte, error) {
-	// Resolve to absolute path
+	// Resolve to absolute path (EvalSymlinks resolves macOS /var → /private/var)
 	abs, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err
 	}
+	// Resolve symlinks so paths are comparable (critical on macOS)
+	realAbs, _ := filepath.EvalSymlinks(abs)
+	if realAbs != "" {
+		abs = realAbs
+	}
 	clean := filepath.Clean(abs)
 
 	// Get repo root and verify the file is within it
-	repoRoot, err := getRepoRoot()
-	if err == nil {
+	repoRoot, rootErr := getRepoRoot()
+	if rootErr == nil {
+		// Also resolve symlinks in repo root
+		realRoot, _ := filepath.EvalSymlinks(repoRoot)
+		if realRoot != "" {
+			repoRoot = realRoot
+		}
+		repoRoot = filepath.Clean(repoRoot)
 		rel, err := filepath.Rel(repoRoot, clean)
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return nil, fmt.Errorf("path traversal blocked: %s (outside repo)", file)

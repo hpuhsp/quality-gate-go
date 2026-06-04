@@ -41,7 +41,7 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 		}
 	case "javascript":
 		if shared.HasBin("prettier") || shared.HasBin("npx") {
-			jsFiles := filterByExt(staged, ".js", ".ts", ".jsx", ".tsx", ".json", ".css", ".md", ".yml", ".yaml")
+			jsFiles := filterByExt(staged, ".js", ".ts", ".jsx", ".tsx", ".json", ".css", ".md", ".yml", ".yaml", ".vue")
 			args := []string{"prettier", "--write"}
 			if !shared.HasBin("prettier") {
 				args = []string{"npx", "prettier", "--write"}

@@ -1,0 +1,13 @@
+{
+  "name": "uni-app-demo",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "dev": "uni",
+    "build": "uni build",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "^3.0.0"
+  }
+}

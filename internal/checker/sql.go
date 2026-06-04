@@ -12,11 +12,8 @@ var sqliPatterns = []struct {
 	Regex    *regexp.Regexp
 	Severity string
 }{
-	{Name: "SQL string concat", Regex: regexp.MustCompile(`(?i)["']\s*\+.*SELECT\b|SELECT\b.*\+`), Severity: "critical"},
-	{Name: "SQL string concat", Regex: regexp.MustCompile(`(?i)["']\s*\+.*INSERT\b|INSERT\b.*\+`), Severity: "critical"},
-	{Name: "SQL string concat", Regex: regexp.MustCompile(`(?i)["']\s*\+.*UPDATE\b|UPDATE\b.*\+`), Severity: "critical"},
-	{Name: "SQL string concat", Regex: regexp.MustCompile(`(?i)["']\s*\+.*DELETE\b|DELETE\b.*\+`), Severity: "critical"},
-	{Name: "SQL string concat", Regex: regexp.MustCompile(`(?i)["']\s*\+.*WHERE\b|WHERE\b.*\+`), Severity: "critical"},
+	// Consolidated SQL keyword concat — single match per line avoids duplicates
+	{Name: "SQL string concat", Regex: regexp.MustCompile(`(?i)["']\s*\+.*(?:SELECT|INSERT|UPDATE|DELETE|WHERE)\b|(?:SELECT|INSERT|UPDATE|DELETE|WHERE)\b.*\+`), Severity: "critical"},
 	{Name: "SQL with String.format", Regex: regexp.MustCompile(`(?i)String\.format\s*\(\s*["'][^"']*(?:SELECT|INSERT|UPDATE|DELETE)\b`), Severity: "critical"},
 	{Name: "Raw SQL execution with concat", Regex: regexp.MustCompile(`(?i)\.execute(?:Query|Update)\s*\(\s*["'][^"']*\+`), Severity: "critical"},
 	{Name: "SQL in template literal", Regex: regexp.MustCompile("(?i)`\\s*(?:SELECT|INSERT|UPDATE|DELETE)\\b[^`]*\\$\\{[^}]*\\}[^`]*`"), Severity: "critical"},
@@ -27,7 +24,7 @@ var sqliPatterns = []struct {
 	{Name: "Dynamic GROUP BY", Regex: regexp.MustCompile(`(?i)GROUP\s+BY\s*\+`), Severity: "medium"},
 }
 
-var srcExt = regexp.MustCompile(`(?i)\.(java|kt|js|ts|py|php)$`)
+var srcExt = regexp.MustCompile(`(?i)\.(java|kt|js|ts|py|php|vue)$`)
 
 func SQLCheck() CheckResult {
 	result := CheckResult{OK: true}
