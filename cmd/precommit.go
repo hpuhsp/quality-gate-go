@@ -38,6 +38,14 @@ func RunPreCommit() {
 		hasErrors = true
 	}
 
+
+	if len(syntaxResult.Skipped) > 0 {
+		fmt.Printf("⚠️  Syntax check skipped for %d files (unsupported extension, checked braces/quotes only):\n", len(syntaxResult.Skipped))
+		for _, f := range syntaxResult.Skipped {
+			fmt.Printf("  - %s\n", f)
+		}
+	}
+
 	// Gate 3: SQL injection check
 	gatesTotal++
 	sqlResult := checker.SQLCheck()

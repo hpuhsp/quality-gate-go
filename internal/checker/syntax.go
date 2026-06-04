@@ -51,7 +51,15 @@ func SyntaxCheck() CheckResult {
 		ext := filepath.Ext(file)
 		lang := extToLang[ext]
 
-		issues := checkFile(file, lang)
+		var issues []string
+		if lang == "" {
+			issues = checkBracketsAndQuotes(file)
+			if len(issues) == 0 {
+				result.Skipped = append(result.Skipped, file)
+			}
+		} else {
+			issues = checkFile(file, lang)
+		}
 		for _, issue := range issues {
 			result.Findings = append(result.Findings, Finding{
 				File: file, Line: 0, Pattern: issue, Severity: "error",
@@ -222,5 +230,25 @@ func checkObjC(content, file string) []string {
 	if implementations != ends {
 		issues = append(issues, fmt.Sprintf("%s: @implementation/@interface (%d) vs @end (%d) mismatch", file, implementations, ends))
 	}
+	return issues
+}
+
+func checkBracketsAndQuotes(file string) []string {
+	content, err := os.ReadFile(file)
+	if err != nil {
+		return nil
+	}
+	str := string(content)
+	var issues []string
+	if strings.Count(str, "{") != strings.Count(str, "}") {
+		issues = append(issues, "Unmatched braces {}")
+	}
+	if strings.Count(str, "[") != strings.Count(str, "]") {
+		issues = append(issues, "Unmatched brackets []")
+	}
+    // simple single/double quotes check (naive, even counts)
+    if strings.Count(str, "\"") % 2 != 0 {
+        issues = append(issues, "Unmatched double quotes \"")
+    }
 	return issues
 }

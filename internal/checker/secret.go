@@ -18,6 +18,7 @@ type Finding struct {
 type CheckResult struct {
 	OK       bool
 	Findings []Finding
+	Skipped  []string
 }
 
 var secretPatterns = []struct {

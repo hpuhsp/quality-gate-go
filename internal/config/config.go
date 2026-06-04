@@ -17,6 +17,7 @@ type Config struct {
 	RunTestsOnPush string `yaml:"runTestsOnPush"`
 	Remote        string `yaml:"remote"`
 	RemoteRef     string `yaml:"remoteRef"`
+	CustomHooks   map[string]string `yaml:"customHooks"`
 }
 
 func Load() Config {
@@ -41,6 +42,17 @@ func Load() Config {
 			}
 			if local.RemoteRef != "" {
 				c.RemoteRef = local.RemoteRef
+			}
+		}
+	}
+
+	
+	// Project config overlay
+	if projData, err := os.ReadFile(".quality-gate.yaml"); err == nil {
+		var projCfg Config
+		if yaml.Unmarshal(projData, &projCfg) == nil {
+			if len(projCfg.CustomHooks) > 0 {
+				c.CustomHooks = projCfg.CustomHooks
 			}
 		}
 	}
