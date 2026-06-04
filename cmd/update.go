@@ -8,7 +8,7 @@ import (
 	
 		)
 
-const updateURL = "https://github.com/hpuhsp/quality-gate/releases/latest/download/quality-gate-"
+const updateURL = "https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-"
 
 func RunUpdate() {
 	current := Version
@@ -38,7 +38,7 @@ func RunUpdate() {
 	fmt.Printf("\nUpdating v%s → v%s...\n", current, latest)
 	if err := downloadAndReplace(latest); err != nil {
 		fmt.Printf("❌ Update failed: %v\n", err)
-		fmt.Println("   Download manually: https://github.com/hpuhsp/quality-gate/releases/latest")
+		fmt.Println("   Download manually: https://github.com/hpuhsp/quality-gate-go/releases/latest")
 		return
 	}
 
@@ -70,5 +70,5 @@ func fetchLatestVersion() (string, error) {
 }
 
 func downloadAndReplace(version string) error {
-	return fmt.Errorf("Please run: git clone https://github.com/hpuhsp/quality-gate-go.git && cd quality-gate-go && go install .")
+	return fmt.Errorf("Please run: git clone https://github.com/hpuhsp/quality-gate-go-go.git && cd quality-gate-go && go install .")
 }

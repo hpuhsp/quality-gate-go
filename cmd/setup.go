@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hpuhsp/quality-gate/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/detect"
 )
 
 type toolDep struct {
@@ -129,7 +129,7 @@ runTestsOnPush: %s
 	// ── API key note ──────────────────────────────────────────────────
 	if apiKey != "" {
 		fmt.Printf("\n⚠️  API key NOT stored. Persist it:\n")
-		fmt.Printf("   echo 'export ANTHROPIC_API_KEY=%s' >> ~/.zshrc\n", apiKey)
+		fmt.Printf("   echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc\n", apiKey)
 	}
 
 	fmt.Printf("\n✅ Setup complete! Config: %s\n\n", configPath)

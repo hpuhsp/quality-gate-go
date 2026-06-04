@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/hpuhsp/quality-gate/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/detect"
 )
 
 func RunStatus() {

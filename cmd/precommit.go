@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hpuhsp/quality-gate/internal/checker"
-	"github.com/hpuhsp/quality-gate/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/checker"
+	"github.com/hpuhsp/quality-gate-go/internal/detect"
 )
 
 func RunPreCommit() {

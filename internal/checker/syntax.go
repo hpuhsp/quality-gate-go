@@ -54,7 +54,7 @@ func SyntaxCheck() CheckResult {
 	}
 
 	for _, file := range files {
-		ext := filepath.Ext(file)
+		ext := strings.ToLower(filepath.Ext(file))
 		lang := extToLang[ext]
 
 		var issues []string
@@ -72,11 +72,6 @@ func SyntaxCheck() CheckResult {
 				File: file, Line: 0, Pattern: issue, Severity: "error",
 			})
 			result.OK = false
-		}
-		for _, issue := range issues {
-			result.Findings = append(result.Findings, Finding{
-				File: file, Line: 0, Pattern: issue, Severity: "error",
-			})
 		}
 	}
 
@@ -100,7 +95,7 @@ func checkFile(file, lang string) []string {
 	if info, err := os.Stat(file); err != nil || info.Size() > 1<<20 {
 		return nil
 	}
-	data, err := os.ReadFile(file)
+	data, err := safeReadFile(file)
 	if err != nil {
 		return nil
 	}

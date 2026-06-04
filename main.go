@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hpuhsp/quality-gate/cmd"
+	"github.com/hpuhsp/quality-gate-go/cmd"
 )
 
 func main() {

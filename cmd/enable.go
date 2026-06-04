@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/hpuhsp/quality-gate/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/detect"
 )
 
 func RunEnable() {

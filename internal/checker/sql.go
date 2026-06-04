@@ -2,7 +2,6 @@ package checker
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -27,7 +26,7 @@ var sqliPatterns = []struct {
 	{Name: "Dynamic GROUP BY", Regex: regexp.MustCompile(`(?i)GROUP\s+BY\s*\+`), Severity: "medium"},
 }
 
-var srcExt = regexp.MustCompile(`\.(java|kt|js|ts|py|go|php)$`)
+var srcExt = regexp.MustCompile(`(?i)\.(java|kt|js|ts|py|php)$`)
 
 func SQLCheck() CheckResult {
 	result := CheckResult{OK: true}
@@ -40,7 +39,7 @@ func SQLCheck() CheckResult {
 		if !srcExt.MatchString(file) {
 			continue
 		}
-		data, err := os.ReadFile(file)
+		data, err := safeReadFile(file)
 		if err != nil {
 			continue
 		}
