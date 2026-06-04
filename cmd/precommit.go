@@ -53,12 +53,10 @@ func RunPreCommit() {
 
 	// Gate 4: Auto-format
 	if proj.Language != "unknown" {
-		ok, issues := checker.FormatCheck(proj)
-		if !ok {
-			fmt.Print("\n❌ FORMAT CHECK FAILED\n")
+		_, issues := checker.FormatCheck(proj)
+		if len(issues) > 0 {
+			fmt.Println("⚠️  Formatter not available:")
 			checker.PrintFormatIssues(issues)
-			fmt.Print("  Fix: install the formatter (ktlint/prettier).\n\n")
-			hasErrors = true
 		}
 	}
 

@@ -24,6 +24,8 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 					exec.Command("git", "add", f).Run()
 				}
 			}
+		} else if len(filterByExt(staged, ".kt")) > 0 {
+			issues = append(issues, "ktlint not installed — Kotlin formatting skipped")
 		}
 	case "java":
 		if hasBin("google-java-format") {
@@ -33,6 +35,8 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 					exec.Command("git", "add", f).Run()
 				}
 			}
+		} else if len(filterByExt(staged, ".java")) > 0 {
+			issues = append(issues, "google-java-format not installed — Java formatting skipped")
 		}
 	case "javascript":
 		if hasBin("prettier") || hasBin("npx") {
@@ -47,6 +51,8 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 					exec.Command("git", "add", f).Run()
 				}
 			}
+		} else if len(filterByExt(staged, ".js", ".ts")) > 0 {
+			issues = append(issues, "prettier not installed — JS/TS formatting skipped")
 		}
 	}
 	return
@@ -80,9 +86,8 @@ func hasBin(name string) bool {
 	return err == nil
 }
 
-// PrintFormatIssues reports format problems.
 func PrintFormatIssues(issues []string) {
 	for _, i := range issues {
-		fmt.Printf("  %s\n", i)
+		fmt.Printf("  ⚠️  %s\n", i)
 	}
 }
