@@ -31,9 +31,15 @@ var extToLang = map[string]string{
 func getStagedSrc() []string {
 	files := getStagedFiles()
 	var src []string
+	// Ignore obvious binary/image extensions
+	ignored := map[string]bool{
+		".png": true, ".jpg": true, ".jpeg": true, ".gif": true,
+		".zip": true, ".jar": true, ".exe": true, ".dll": true, ".so": true,
+		".class": true, ".bin": true, ".tar": true, ".gz": true,
+	}
 	for _, f := range files {
 		ext := filepath.Ext(f)
-		if _, ok := extToLang[ext]; ok {
+		if !ignored[ext] {
 			src = append(src, f)
 		}
 	}
@@ -59,6 +65,13 @@ func SyntaxCheck() CheckResult {
 			}
 		} else {
 			issues = checkFile(file, lang)
+		}
+		
+		for _, issue := range issues {
+			result.Findings = append(result.Findings, Finding{
+				File: file, Line: 0, Pattern: issue, Severity: "error",
+			})
+			result.OK = false
 		}
 		for _, issue := range issues {
 			result.Findings = append(result.Findings, Finding{
