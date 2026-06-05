@@ -55,14 +55,17 @@ func DefaultConfig() Config {
 	}
 }
 
-// Load reads quality-gate.yaml from root, falling back to defaults.
-// Config file is optional — missing file means "use defaults".
+// Load reads quality-gate.yaml or .quality-gate.yaml from root, falling back to defaults.
 func Load(root string) Config {
 	cfg := DefaultConfig()
 
+	// Try both filenames: quality-gate.yaml first, then .quality-gate.yaml
 	configPath := filepath.Join(root, "quality-gate.yaml")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return cfg
+		configPath = filepath.Join(root, ".quality-gate.yaml")
+		if _, err := os.Stat(configPath); os.IsNotExist(err) {
+			return cfg
+		}
 	}
 
 	f, err := os.Open(configPath)
