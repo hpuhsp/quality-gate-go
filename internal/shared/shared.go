@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 // HasBin checks whether a command exists in PATH.
@@ -21,36 +22,62 @@ func FileExists(path string) bool {
 	return err == nil
 }
 
+// RunInstall executes a shell command and returns combined output on failure.
+func RunInstall(cmd string) error {
+	c := exec.Command("sh", "-c", cmd)
+	out, err := c.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%s: %s", err.Error(), strings.TrimSpace(string(out)))
+	}
+	return nil
+}
+
+// Cached repo root — resolved once per process, never again.
+var (
+	repoRootOnce sync.Once
+	repoRootVal  string
+	repoRootErr  error
+)
+
+func cachedRepoRoot() (string, error) {
+	repoRootOnce.Do(func() {
+		out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+		if err != nil {
+			repoRootErr = err
+			return
+		}
+		repoRootVal = strings.TrimSpace(string(out))
+		// Resolve symlinks (critical on macOS /var → /private/var)
+		real, _ := filepath.EvalSymlinks(repoRootVal)
+		if real != "" {
+			repoRootVal = real
+		}
+		repoRootVal = filepath.Clean(repoRootVal)
+	})
+	return repoRootVal, repoRootErr
+}
+
 // SafeReadFile reads a file with path traversal protection and 1MB size limit.
 func SafeReadFile(file string) ([]byte, error) {
-	// Resolve to absolute path (EvalSymlinks resolves macOS /var → /private/var)
 	abs, err := filepath.Abs(file)
 	if err != nil {
 		return nil, err
 	}
-	// Resolve symlinks so paths are comparable (critical on macOS)
 	realAbs, _ := filepath.EvalSymlinks(abs)
 	if realAbs != "" {
 		abs = realAbs
 	}
 	clean := filepath.Clean(abs)
 
-	// Get repo root and verify the file is within it
-	repoRoot, rootErr := getRepoRoot()
-	if rootErr == nil {
-		// Also resolve symlinks in repo root
-		realRoot, _ := filepath.EvalSymlinks(repoRoot)
-		if realRoot != "" {
-			repoRoot = realRoot
-		}
-		repoRoot = filepath.Clean(repoRoot)
-		rel, err := filepath.Rel(repoRoot, clean)
-		if err != nil || strings.HasPrefix(rel, "..") {
-			return nil, fmt.Errorf("path traversal blocked: %s (outside repo)", file)
-		}
-	} else {
-		// P0-4: Outside a git repo, refuse to read (no repo boundary to validate)
+	// Get repo root (cached)
+	repoRoot, rootErr := cachedRepoRoot()
+	if rootErr != nil {
 		return nil, fmt.Errorf("cannot verify path safety: not in a git repo (%v)", rootErr)
+	}
+
+	rel, err := filepath.Rel(repoRoot, clean)
+	if err != nil || strings.HasPrefix(rel, "..") {
+		return nil, fmt.Errorf("path traversal blocked: %s (outside repo)", file)
 	}
 
 	// Skip files larger than 1MB
@@ -58,12 +85,4 @@ func SafeReadFile(file string) ([]byte, error) {
 		return nil, fmt.Errorf("file too large or unreadable: %s", file)
 	}
 	return os.ReadFile(clean)
-}
-
-func getRepoRoot() (string, error) {
-	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(out)), nil
 }

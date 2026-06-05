@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
@@ -127,11 +126,7 @@ func RunDoctor() {
 }
 
 
+// runInstall delegates to shared.RunInstall.
 func runInstall(cmd string) error {
-	c := exec.Command("sh", "-c", cmd)
-	out, err := c.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%s: %s", err.Error(), string(out))
-	}
-	return nil
+	return shared.RunInstall(cmd)
 }

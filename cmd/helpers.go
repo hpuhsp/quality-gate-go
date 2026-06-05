@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"os"
 	"os/exec"
 	"strings"
 
@@ -22,19 +21,7 @@ func splitLines(s string) []string {
 	return strings.Split(s, "\n")
 }
 
-// readFileSafe reads a file with size limit (1MB) using shared.SafeReadFile.
-func readFileSafe(file string) ([]byte, error) {
-	return shared.SafeReadFile(file)
-}
-
-// hasBin checks if a command exists in PATH.
+// hasBin delegates to shared.HasBin (avoids duplication).
 func hasBin(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
-}
-
-// FileExists checks if a file exists.
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
+	return shared.HasBin(name)
 }

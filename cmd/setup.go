@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -168,13 +167,9 @@ func yesNo(s string) string {
 	return "false"
 }
 
+// runInstallCmd delegates to shared.RunInstall.
 func runInstallCmd(cmd string) error {
-	c := exec.Command("sh", "-c", cmd)
-	out, err := c.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("%s", strings.TrimSpace(string(out)))
-	}
-	return nil
+	return shared.RunInstall(cmd)
 }
 
 func timestamp() string {

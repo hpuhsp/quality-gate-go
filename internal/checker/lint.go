@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 // LintCheck runs language-specific linters.
@@ -93,7 +94,7 @@ func runLinter(cmdName string, args []string, staged []string, lang string) Chec
 	return result
 }
 
+// hasBin delegates to shared.HasBin.
 func hasBin(name string) bool {
-	_, err := exec.LookPath(name)
-	return err == nil
+	return shared.HasBin(name)
 }

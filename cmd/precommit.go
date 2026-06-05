@@ -7,6 +7,7 @@ import (
 	"github.com/hpuhsp/quality-gate-go/internal/checker"
 	"github.com/hpuhsp/quality-gate-go/internal/config"
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 func RunPreCommit() {
@@ -173,7 +174,7 @@ func getStagedFiles() []string {
 func runEntropyScan(staged []string) []checker.Finding {
 	var findings []checker.Finding
 	for _, file := range staged {
-		data, err := readFileSafe(file)
+		data, err := shared.SafeReadFile(file)
 		if err != nil {
 			continue
 		}
