@@ -86,7 +86,8 @@ func isCommonNonSecret(s string) bool {
 		return true
 	}
 	// URL-safe strings with dots (domain names encoded)
-	if strings.Contains(s, ".") && len(s) < 50 {
+	// Only skip if it looks like a real domain (word.tld pattern, not arbitrary dots)
+	if matched, _ := regexp.MatchString(`^[a-zA-Z0-9]+\.[a-zA-Z]{2,4}$`, s); matched {
 		return true
 	}
 	return false

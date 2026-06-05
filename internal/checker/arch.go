@@ -2,11 +2,11 @@ package checker
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/hpuhsp/quality-gate-go/internal/config"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 // ArchCheck validates architectural layer constraints.
@@ -67,7 +67,7 @@ func ArchCheck(staged []string, cfg config.ArchConfig) CheckResult {
 
 	// For each file, check imports against forbidden rules
 	for _, fl := range fileLayers {
-		data, err := os.ReadFile(fl.file)
+		data, err := shared.SafeReadFile(fl.file)
 		if err != nil {
 			continue
 		}

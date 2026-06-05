@@ -23,6 +23,8 @@ func SecurityScan(staged []string) CheckResult {
 		{"ProcessBuilder with user input", regexp.MustCompile(`(?i)new\s+ProcessBuilder\s*\([^)]*\+`), "critical"},
 		{"os.system() with string concat", regexp.MustCompile(`(?i)os\.(system|popen)\s*\(\s*["'][^"']*\+`), "critical"},
 		{"exec() with string concat", regexp.MustCompile(`(?i)\bexec\s*\(\s*["'][^"']*["']\s*\+`), "high"},
+		{"Go exec.Command with variable", regexp.MustCompile(`exec\.Command\s*\([^)]*\+`), "critical"},
+		{"Go exec.CommandContext with variable", regexp.MustCompile(`exec\.CommandContext\s*\([^)]*\+`), "critical"},
 	}
 
 	// Path Traversal patterns
@@ -90,7 +92,7 @@ func SecurityScan(staged []string) CheckResult {
 	}
 
 	for _, f := range result.Findings {
-		if f.Severity == "critical" {
+		if f.Severity == "critical" || f.Severity == "high" {
 			result.OK = false
 			break
 		}

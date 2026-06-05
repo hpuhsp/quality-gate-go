@@ -75,7 +75,7 @@ func Detect(root string) Result {
 }
 
 func detectJSTestFramework(root string) string {
-	data, err := os.ReadFile(filepath.Join(root, "package.json"))
+	data, err := shared.SafeReadFile(filepath.Join(root, "package.json"))
 	if err != nil {
 		return "unknown"
 	}

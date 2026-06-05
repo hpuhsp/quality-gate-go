@@ -101,9 +101,12 @@ func RunPreCommit() {
 		if len(issues) > 0 {
 			fmt.Println("⚠️  Formatter not available:")
 			checker.PrintFormatIssues(issues)
+		} else {
+			gatesPassed++
 		}
+	} else {
+		gatesPassed++
 	}
-	gatesPassed++
 
 	// Gate 5: Lint check (optional, enabled via config)
 	if cfg.Lint.Enabled && proj.Language != "unknown" {
