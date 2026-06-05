@@ -21,29 +21,15 @@ chmod +x /usr/local/bin/quality-gate
 ### Linux
 
 ```bash
-# amd64
 curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-linux-amd64 -o /usr/local/bin/quality-gate
-chmod +x /usr/local/bin/quality-gate
-
-# arm64
-curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-linux-arm64 -o /usr/local/bin/quality-gate
 chmod +x /usr/local/bin/quality-gate
 ```
 
 ### Windows
 
 ```powershell
-# PowerShell（管理员运行）
 Invoke-WebRequest https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-windows-amd64.exe -OutFile "$env:LOCALAPPDATA\quality-gate\quality-gate.exe"
 [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:LOCALAPPDATA\quality-gate", "User")
-```
-
-或从 [releases 页面](https://github.com/hpuhsp/quality-gate-go/releases/latest) 下载。
-
-### 源码编译
-
-```bash
-go install github.com/hpuhsp/quality-gate-go@latest
 ```
 
 ## 快速开始
@@ -51,42 +37,78 @@ go install github.com/hpuhsp/quality-gate-go@latest
 ```bash
 cd your-project
 quality-gate setup          # 交互式向导：检测项目、安装工具
-quality-gate doctor         # 验证所有依赖
-quality-gate enable         # 激活 4 道闸门
-quality-gate status         # 查看状态和项目检测
+quality-gate doctor         # 验证依赖
+quality-gate enable         # 激活 pre-commit 钩子
+quality-gate status         # 查看状态
 ```
 
-之后每次 `git commit` 自动执行 4 道闸门。
-
-## 4 道闸门
+## 6 道质量闸门
 
 | 闸门 | 检查内容 | 速度 |
 |------|---------|:----:|
-| 🔑 密钥扫描 | 密码、API Key、Token、私钥（17 条规则） | <1s |
-| 📝 语法检查 | 括号不匹配、空 catch、预处理失衡（10 种语言） | <2s |
-| 🛡️ SQL 注入 | 字符串拼接 SQL、裸 Statement、模板注入 | <1s |
-| ✨ 自动格式化 | ktlint / prettier / google-java-format（自动修复） | 随工具 |
+| 🔑 **密钥扫描** | 密码、API Key、Token + **Shannon 熵值检测**（32+ 规则） | <1s |
+| 📝 **语法检查** | 括号不匹配、空 catch、预处理失衡（10 种语言） | <2s |
+| 🛡️ **安全扫描** | SQL 注入 + 命令注入 + 路径穿越 + SSRF | <1s |
+| ✨ **自动格式化** | ktlint / prettier / google-java-format（提交时自动修正） | 随工具 |
+| 🔍 **Lint**（可选） | golangci-lint / PMD / Detekt / ESLint | <5s |
+| 🏗️ **架构规则**（可选） | 层依赖约束（如 controller→repository 禁止） | <1s |
 
 ## 支持语言
 
-语法检查：Java · Kotlin · JavaScript · TypeScript · C# · C++ · Go · Swift · Objective-C · Vue
+Java · Kotlin · JavaScript · TypeScript · Go · C# · C++ · Vue · Swift · Objective-C · Python
+
+## 配置文件
+
+在项目根目录创建 `quality-gate.yaml` 自定义闸门：
+
+```yaml
+version: 1
+
+secret:
+  enabled: true          # 密钥扫描 + 熵值检测
+
+syntax:
+  enabled: true          # 语法检查（10 种语言）
+
+security:
+  enabled: true          # SQL 注入 + 命令注入 + 路径穿越 + SSRF
+
+format:
+  enabled: true          # 提交时自动格式化
+  auto_fix: false        # true=自动修正，false=仅检查
+
+lint:
+  enabled: false          # 语言专用 Lint（需安装对应工具）
+
+architecture:
+  enabled: false
+  forbidden:             # 架构层约束
+    - controller->repository
+    - ui->database
+    - domain->infrastructure
+
+performance:
+  max_duration: 3s       # 钩子最大执行时间
+```
+
+无需配置文件——所有闸门使用合理默认值。
 
 ## 命令
 
 ```
 quality-gate setup        首次配置向导：检测项目、安装工具
 quality-gate doctor       检查并自动安装依赖
-quality-gate enable       激活 4 道闸门
-quality-gate disable      关闭
+quality-gate enable       激活 pre-commit 钩子
+quality-gate disable      关闭钩子
 quality-gate status       查看状态和项目检测
 quality-gate update       检查最新版本
 quality-gate tool         可选工具
-  tool gen-tests          [实验性] AI 生成测试（需 gstack CLI）
+  tool gen-tests          [实验性] AI 生成测试（需 ANTHROPIC_API_KEY）
 ```
 
 ## 原理
 
-`quality-gate enable` 执行 `git config core.hooksPath ~/.quality-gate/hooks/`，钩子脚本在 commit 时调用 `quality-gate pre-commit`，**只扫描暂存文件**。项目目录**零文件增加**。
+`quality-gate enable` 设置 `git config core.hooksPath` 指向 `~/.quality-gate/hooks/`。钩子脚本调用 `quality-gate pre-commit`，对**暂存文件**执行 6 道闸门。项目目录零文件增加。
 
 ```bash
 quality-gate disable      # 取消 core.hooksPath，钩子停止运行
@@ -94,45 +116,45 @@ quality-gate disable      # 取消 core.hooksPath，钩子停止运行
 
 ## 设计哲学
 
-> 安装一次，到处使用。在敲键盘时就发现问题，不等 CI。
+> 安装一次，到处使用。在键盘前发现问题，不等 CI。
 
 - **零文件侵入**：用 `git config core.hooksPath`，不污染项目目录
 - **零运行时依赖**：单 Go 二进制，不需要 Node.js/Python
-- **确定性**：全部基于正则/编译器检查，钩子中无 LLM API 调用
-- **极快**：4 道闸门通常在 3 秒内完成
+- **可配置**：每道闸门可通过 `quality-gate.yaml` 独立开关
+- **极快**：6 道闸门通常在 3 秒内完成
 
 ## 团队配置
 
-通过 Git 仓库共享规则：
-
-```bash
-export QG_REMOTE_REPO=https://gitlab.com/your-team/quality-gate-config.git
-quality-gate enable
+```yaml
+# quality-gate.yaml 放在项目根目录
+# 提交到仓库——团队共享同一套规则
+version: 1
+security:
+  enabled: true
+lint:
+  enabled: true
+architecture:
+  enabled: true
+  forbidden:
+    - controller->repository
+    - ui->database
 ```
 
-远程 `quality-gate-config.yml` 与本地配置合并。
+## 为什么选择 quality-gate-go？
 
-## 🚀 新特性 (Develop)
-- **项目级配置:** 支持 `.quality-gate.yaml`。
-- **规则同步:** 支持远程拉取最新安全规则。
-- **性能优化:** 仅扫描增量文件。
-- **自动修复:** 可在 setup 阶段开启自动格式化修复。
+| | Husky | quality-gate-go |
+|---|---|---|
+| **依赖** | 需要 Node.js 运行时 | 单 Go 二进制 |
+| **启动** | ~200ms | <10ms |
+| **多语言** | 专注 JS/TS | 支持 11 种语言 |
+| **密钥检测** | 无内置 | 32 规则 + 熵值检测 |
+| **安全规则** | 无内置 | SQL/命令注入/路径穿越/SSRF |
+| **架构规则** | 无内置 | 层依赖约束 |
+| **配置** | `.huskyrc` | `quality-gate.yaml` |
 
-## 为什么选择 quality-gate-go？(对比 Husky)
-**Husky** 是前端生态中非常优秀的 Git Hook 工具，但它强依赖 Node.js 环境。在涵盖 Java、Go、Python、Android、Vue 的多技术栈企业研发团队中，为了推行代码门禁而强制所有开发者安装 Node.js，推广阻力极大，环境配置成本极高。
+## 配置示例
 
-**quality-gate-go** 的核心优势：
-- 🚀 **零依赖：** 采用 Go 语言编译为单文件二进制程序，无需任何运行环境。
-- ⚡ **极速启动：** 毫秒级（<10ms）冷启动速度，开发者几乎无感知，彻底告别 commit 卡顿。
-- 🌍 **多技术栈通用：** “即插即用”，可毫无摩擦地推广至后端、前端、数据、移动端等任何项目仓库。
-
-## 零信任双层防御架构 (Zero-Trust)
-- **本地门禁（体验层）：** 尽早暴露代码问题，提供极速反馈与异步非阻塞的更新提示。如果网络波动，规则拉取自动降级，绝不卡死提交。
-- **远端流水线（合规层）：** GitLab CI / Jenkins 永远运行最新规则进行兜底拦截，倒逼开发者对齐企业标准。
-
-## 配置参考示例
-请查看 `examples/` 目录，获取针对不同技术栈的最佳实践 `.quality-gate.yaml` 配置文件：
-- [Java / Spring Boot 项目](examples/java/.quality-gate.yaml)
-- [Android (Kotlin/Gradle) 项目](examples/android/.quality-gate.yaml)
-- [iOS (Swift) 项目](examples/ios/.quality-gate.yaml)
-- [Vue / 前端 项目](examples/vue/.quality-gate.yaml)
+- [Java / Spring Boot](examples/java/.quality-gate.yaml)
+- [Android (Kotlin/Gradle)](examples/android/.quality-gate.yaml)
+- [Vue / 前端](examples/vue/.quality-gate.yaml)
+- [Uni-app](examples/uni-app/package.json)

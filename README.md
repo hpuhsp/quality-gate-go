@@ -21,29 +21,15 @@ chmod +x /usr/local/bin/quality-gate
 ### Linux
 
 ```bash
-# amd64
 curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-linux-amd64 -o /usr/local/bin/quality-gate
-chmod +x /usr/local/bin/quality-gate
-
-# arm64
-curl -fsSL https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-linux-arm64 -o /usr/local/bin/quality-gate
 chmod +x /usr/local/bin/quality-gate
 ```
 
 ### Windows
 
 ```powershell
-# PowerShell (run as Administrator)
 Invoke-WebRequest https://github.com/hpuhsp/quality-gate-go/releases/latest/download/quality-gate-windows-amd64.exe -OutFile "$env:LOCALAPPDATA\quality-gate\quality-gate.exe"
 [Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:LOCALAPPDATA\quality-gate", "User")
-```
-
-Or download from [releases page](https://github.com/hpuhsp/quality-gate-go/releases/latest).
-
-### Build from source
-
-```bash
-go install github.com/hpuhsp/quality-gate-go@latest
 ```
 
 ## Quick Start
@@ -52,41 +38,77 @@ go install github.com/hpuhsp/quality-gate-go@latest
 cd your-project
 quality-gate setup          # Interactive wizard: detect project, install tools
 quality-gate doctor         # Verify all dependencies
-quality-gate enable         # Activate 4-gate pre-commit hook
+quality-gate enable         # Activate pre-commit hook
 quality-gate status         # See what's active and detected
 ```
 
-That's it. Every `git commit` now runs 4 gates.
-
-## Gates
+## 6 Quality Gates
 
 | Gate | What it catches | Speed |
 |------|----------------|:----:|
-| 🔑 Secret scan | Passwords, API keys, tokens, private keys (17 patterns) | <1s |
-| 📝 Syntax check | Bracket mismatch, empty catch, preprocessor imbalance (10 languages) | <2s |
-| 🛡️ SQL injection | String-concatenated SQL, raw Statement, template injection | <1s |
-| ✨ Auto-format | ktlint / prettier / google-java-format (auto-fixed on commit) | varies |
+| 🔑 **Secret Scan** | Passwords, API keys, tokens + **Shannon entropy detection** (32+ patterns) | <1s |
+| 📝 **Syntax Check** | Bracket mismatch, empty catch, preprocessor imbalance (10 languages) | <2s |
+| 🛡️ **Security Scan** | SQL injection + Command Injection + Path Traversal + SSRF | <1s |
+| ✨ **Auto-Format** | ktlint / prettier / google-java-format (auto-fixed on commit) | varies |
+| 🔍 **Lint** (opt-in) | golangci-lint / PMD / Detekt / ESLint | <5s |
+| 🏗️ **Architecture** (opt-in) | Layer dependency violations (e.g., controller→repository forbidden) | <1s |
 
 ## Supported Languages
 
-Syntax check: Java · Kotlin · JavaScript · TypeScript · C# · C++ · Go · Swift · Objective-C · Vue
+Java · Kotlin · JavaScript · TypeScript · Go · C# · C++ · Vue · Swift · Objective-C · Python
+
+## Configuration
+
+Create `quality-gate.yaml` in your project root to customize gates:
+
+```yaml
+version: 1
+
+secret:
+  enabled: true          # Secret scan + entropy detection
+
+syntax:
+  enabled: true          # Syntax check (10 languages)
+
+security:
+  enabled: true          # SQL injection + CMD injection + Path traversal + SSRF
+
+format:
+  enabled: true          # Auto-format on commit
+  auto_fix: false        # Set true to auto-fix, false to check-only
+
+lint:
+  enabled: false          # Language-specific linters (requires tools installed)
+
+architecture:
+  enabled: false
+  forbidden:             # Architecture layer constraints
+    - controller->repository
+    - ui->database
+    - domain->infrastructure
+
+performance:
+  max_duration: 3s       # Max commit hook duration
+```
+
+No config file needed — all gates run with sensible defaults.
 
 ## Commands
 
 ```
 quality-gate setup        First-run wizard: detect project, install tools
 quality-gate doctor       Check & auto-install dependencies
-quality-gate enable       Activate 4-gate pre-commit hook
+quality-gate enable       Activate pre-commit hook
 quality-gate disable      Deactivate hooks
 quality-gate status       Show status and project detection
 quality-gate update       Check for latest version
 quality-gate tool         Optional tools
-  tool gen-tests          [experimental] AI-generate tests (needs gstack CLI)
+  tool gen-tests          [experimental] AI-generate tests (needs ANTHROPIC_API_KEY)
 ```
 
 ## How It Works
 
-`quality-gate enable` sets `git config core.hooksPath` to `~/.quality-gate/hooks/`. The hook scripts call `quality-gate pre-commit`, which runs all 4 gates on **staged files only**. No files are added to your project.
+`quality-gate enable` sets `git config core.hooksPath` to `~/.quality-gate/hooks/`. The hook scripts call `quality-gate pre-commit`, which runs all 6 gates on **staged files only**. No files are added to your project.
 
 ```bash
 quality-gate disable      # Removes core.hooksPath — hooks stop running
@@ -98,41 +120,41 @@ quality-gate disable      # Removes core.hooksPath — hooks stop running
 
 - **Zero project files**: uses `git config core.hooksPath`, not `.pre-commit-config.yaml`
 - **Zero runtime deps**: single Go binary, no Node.js/Python required
-- **Deterministic**: all gates are regex/compiler-based, no LLM API calls in hooks
-- **Fast**: all 4 gates complete in under 3 seconds for typical commits
+- **Configurable**: per-gate enable/disable via `quality-gate.yaml`
+- **Fast**: all 6 gates complete in under 3 seconds for typical commits
 
 ## Team Config
 
-Share rules across your team via a git repo:
-
-```bash
-export QG_REMOTE_REPO=https://gitlab.com/your-team/quality-gate-config.git
-quality-gate enable
+```yaml
+# quality-gate.yaml in your project root
+# Commit this file — team shares the same rules
+version: 1
+security:
+  enabled: true
+lint:
+  enabled: true
+architecture:
+  enabled: true
+  forbidden:
+    - controller->repository
+    - ui->database
 ```
 
-The remote `quality-gate-config.yml` is fetched and merged with local settings.
+## Why quality-gate-go?
 
-## 🚀 New Features in Develop
-- **Project-level config:** `.quality-gate.yaml` support.
-- **Auto-update rules:** Sync security rules from remote.
-- **Staged files only:** Optimized performance.
-- **Auto-fix:** Configurable via `quality-gate setup --auto-fix=true`.
-
-## Why quality-gate-go? (vs. Husky)
-While tools like **Husky** are excellent for pure frontend ecosystems, they require a Node.js environment to run. In a polyglot enterprise team (Java, Go, Python, Vue, Android), forcing every backend and mobile developer to install Node.js just for Git hooks creates immense friction.
-
-**quality-gate-go** solves this:
-- 🚀 **Zero Dependencies:** Distributed as a single compiled Go binary. No Node/NPM required.
-- ⚡ **Lightning Fast:** <10ms startup time, offering a frictionless developer experience.
-- 🌍 **Polyglot Ready:** Instantly deployable across backend, frontend, and mobile repositories without environmental headaches.
-
-## Zero-Trust Dual-Layer Architecture
-- **Local (DX Layer):** `quality-gate-go` provides instant, millisecond feedback and gentle nudges to update. It prioritizes developer experience and never blocks your commit due to network issues.
-- **Remote (Enforcement Layer):** Your CI pipeline (e.g., GitLab CI) acts as the ultimate source of truth, running the latest rules to enforce compliance and nudging developers to sync local tools.
+| | Husky | quality-gate-go |
+|---|---|---|
+| **Dependencies** | Node.js runtime required | Single Go binary |
+| **Startup** | ~200ms | <10ms |
+| **Multi-language** | JS/TS focused | 11 languages supported |
+| **Secret detection** | Not built-in | 32 patterns + entropy |
+| **Security rules** | Not built-in | SQL/CMD/Path/SSRF |
+| **Architecture rules** | Not built-in | Layer constraints |
+| **Config** | `.huskyrc` | `quality-gate.yaml` |
 
 ## Configuration Examples
-Check out the `examples/` directory for reference `.quality-gate.yaml` configurations tailored for different tech stacks:
+
 - [Java / Spring Boot](examples/java/.quality-gate.yaml)
 - [Android (Kotlin/Gradle)](examples/android/.quality-gate.yaml)
-- [iOS (Swift)](examples/ios/.quality-gate.yaml)
 - [Vue / Frontend](examples/vue/.quality-gate.yaml)
+- [Uni-app](examples/uni-app/package.json)
