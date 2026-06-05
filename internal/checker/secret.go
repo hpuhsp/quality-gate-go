@@ -46,7 +46,7 @@ var secretPatterns = []struct {
 	{Name: "Feishu Webhook", Regex: regexp.MustCompile(`https://open\.feishu\.cn/open-apis/bot/v2/hook/[A-Za-z0-9-]+`), Severity: "medium"},
 }
 
-var skipExt = regexp.MustCompile(`\.(png|jpe?g|gif|ico|svg|woff2?|ttf|eot|zip|tar|gz|jar|war|class|lock|map|min\.\w+|pb|bin|exe|dll|so|dylib|wasm|mp4|mp3|pdf)$`)
+var skipExt = regexp.MustCompile(`(?i)\.(png|jpe?g|gif|ico|svg|woff2?|ttf|eot|zip|tar|gz|jar|war|class|lock|map|min\.\w+|pb|bin|exe|dll|so|dylib|wasm|mp4|mp3|pdf)$`)
 
 func SecretScan() CheckResult {
 	result := CheckResult{OK: true}
@@ -65,9 +65,21 @@ func SecretScan() CheckResult {
 			continue
 		}
 		lines := strings.Split(string(data), "\n")
+		inBlockComment := false
 		for i, line := range lines {
+			// Track multi-line /* ... */ block comments
+			if inBlockComment {
+				if strings.Contains(line, "*/") {
+					inBlockComment = false
+				}
+				continue
+			}
+			if strings.Contains(line, "/*") && !strings.Contains(line, "*/") {
+				inBlockComment = true
+				continue
+			}
 			trimmed := strings.TrimSpace(line)
-			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, "*") {
+			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "#") {
 				continue
 			}
 			for _, p := range secretPatterns {

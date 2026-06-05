@@ -43,8 +43,14 @@ exit 1
 `, name, extraPath, name, exe, exe, name)
 	}
 
-	os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(hook("pre-commit")), 0755)
-	os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(hook("pre-push")), 0755)
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit"), []byte(hook("pre-commit")), 0755); err != nil {
+		fmt.Printf("❌ Failed to write pre-commit hook: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(filepath.Join(hooksDir, "pre-push"), []byte(hook("pre-push")), 0755); err != nil {
+		fmt.Printf("❌ Failed to write pre-push hook: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Windows: also write .bat wrappers for native cmd/PowerShell git clients
 	if runtime.GOOS == "windows" {
@@ -55,19 +61,27 @@ set "PATH=%s;%%PATH%%"
 "%s" %s
 `, name, strings.ReplaceAll(extraPath, ":", ";"), exe, name)
 		}
-		os.WriteFile(filepath.Join(hooksDir, "pre-commit.bat"), []byte(bat("pre-commit")), 0644)
-		os.WriteFile(filepath.Join(hooksDir, "pre-push.bat"), []byte(bat("pre-push")), 0644)
+		if err := os.WriteFile(filepath.Join(hooksDir, "pre-commit.bat"), []byte(bat("pre-commit")), 0644); err != nil {
+			fmt.Printf("❌ Failed to write pre-commit.bat: %v\n", err)
+			os.Exit(1)
+		}
+		if err := os.WriteFile(filepath.Join(hooksDir, "pre-push.bat"), []byte(bat("pre-push")), 0644); err != nil {
+			fmt.Printf("❌ Failed to write pre-push.bat: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	exec.Command("git", "config", "core.hooksPath", hooksDir).Run()
 
 	configPath := filepath.Join(configDir, "config.yml")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		os.WriteFile(configPath, []byte(`# quality-gate configuration
+		if err := os.WriteFile(configPath, []byte(`# quality-gate configuration
 minCoverage: 60
 autoFormat: true
 blockOnSecrets: true
-`), 0644)
+`), 0644); err != nil {
+			fmt.Printf("⚠️  Failed to write config: %v\n", err)
+		}
 	}
 
 	fmt.Printf("✅ quality-gate enabled\n")

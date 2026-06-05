@@ -42,9 +42,20 @@ func SQLCheck() CheckResult {
 			continue
 		}
 		lines := strings.Split(string(data), "\n")
+		inBlockComment := false
 		for i, line := range lines {
+			if inBlockComment {
+				if strings.Contains(line, "*/") {
+					inBlockComment = false
+				}
+				continue
+			}
+			if strings.Contains(line, "/*") && !strings.Contains(line, "*/") {
+				inBlockComment = true
+				continue
+			}
 			trimmed := strings.TrimSpace(line)
-			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "*") || strings.HasPrefix(trimmed, "#") {
+			if strings.HasPrefix(trimmed, "//") || strings.HasPrefix(trimmed, "#") {
 				continue
 			}
 			for _, p := range sqliPatterns {

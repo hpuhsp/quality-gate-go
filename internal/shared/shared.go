@@ -48,6 +48,9 @@ func SafeReadFile(file string) ([]byte, error) {
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return nil, fmt.Errorf("path traversal blocked: %s (outside repo)", file)
 		}
+	} else {
+		// P0-4: Outside a git repo, refuse to read (no repo boundary to validate)
+		return nil, fmt.Errorf("cannot verify path safety: not in a git repo (%v)", rootErr)
 	}
 
 	// Skip files larger than 1MB

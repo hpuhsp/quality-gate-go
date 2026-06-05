@@ -150,7 +150,10 @@ func callAnthropic(apiKey, prompt string) (string, error) {
 			{"role": "user", "content": prompt},
 		},
 	}
-	data, _ := json.Marshal(body)
+	data, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
 
 	req, err := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(data))
 	if err != nil {
@@ -166,7 +169,10 @@ func callAnthropic(apiKey, prompt string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	raw, _ := io.ReadAll(resp.Body)
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20)) // 10MB cap
+	if err != nil {
+		return "", fmt.Errorf("reading response: %w", err)
+	}
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(raw))
 	}
@@ -216,6 +222,13 @@ func parseAndWriteTests(response, testDir, ext string) int {
 		}
 
 		filePath := filepath.Join(testDir, fileName)
+		// P0-1: Validate output path stays within testDir
+		absTestDir, _ := filepath.Abs(testDir)
+		absFilePath, _ := filepath.Abs(filePath)
+		if !strings.HasPrefix(absFilePath, absTestDir+string(os.PathSeparator)) {
+			fmt.Printf("  ⚠️  skipped: path traversal in filename %q\n", fileName)
+			continue
+		}
 		if err := os.WriteFile(filePath, []byte(code), 0644); err != nil {
 			fmt.Printf("  ⚠️  Failed to write %s: %v\n", filePath, err)
 			continue

@@ -234,7 +234,7 @@ func checkObjC(content, file string) []string {
 }
 
 func checkBracketsAndQuotes(file string) []string {
-	content, err := os.ReadFile(file)
+	content, err := shared.SafeReadFile(file)
 	if err != nil {
 		return nil
 	}

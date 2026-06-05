@@ -1,13 +1,15 @@
 package cmd
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
 )
@@ -125,7 +127,10 @@ runTestsOnPush: %s
 		config += "# Run: export ANTHROPIC_API_KEY=sk-ant-...\n"
 	}
 
-	os.WriteFile(configPath, []byte(config), 0644)
+	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+		fmt.Printf("❌ Failed to write config: %v\n", err)
+		os.Exit(1)
+	}
 
 	// ── API key note ──────────────────────────────────────────────────
 	if apiKey != "" {
@@ -146,8 +151,8 @@ func prompt(question, defaultVal string) string {
 	} else {
 		fmt.Printf("%s: ", question)
 	}
-	var answer string
-	fmt.Scanln(&answer)
+	reader := bufio.NewReader(os.Stdin)
+	answer, _ := reader.ReadString('\n')
 	answer = strings.TrimSpace(answer)
 	if answer == "" {
 		return defaultVal

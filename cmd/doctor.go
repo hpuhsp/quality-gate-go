@@ -1,11 +1,14 @@
 package cmd
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
+	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 type dep struct {
@@ -98,8 +101,9 @@ func RunDoctor() {
 
 	fmt.Println()
 	fmt.Print("Auto-install missing dependencies? (y/N): ")
-	var answer string
-	fmt.Scanln(&answer)
+	reader := bufio.NewReader(os.Stdin)
+	answer, _ := reader.ReadString('\n')
+	answer = strings.TrimSpace(answer)
 	if answer != "y" && answer != "Y" && answer != "yes" {
 		fmt.Println("  Skipped. Run 'quality-gate doctor' anytime to check again.")
 		return
