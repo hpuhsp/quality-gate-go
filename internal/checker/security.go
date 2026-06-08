@@ -1,7 +1,6 @@
 package checker
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -34,7 +33,7 @@ var pathPatterns = []secPattern{
 }
 
 var ssrfPatterns = []secPattern{
-	{"URL from user input", regexp.MustCompile(`(?i)new\s+(URL|URI)\s*\(`), "high"},
+	{"URL constructed with input", regexp.MustCompile(`(?i)new\s+(URL|URI)\s*\([^)]*\+`), "high"},
 	{"HTTP with concat", regexp.MustCompile(`(?i)(fetch|axios|requests\.get)\s*\(\s*[^)]*\+`), "high"},
 	{"HttpClient URL", regexp.MustCompile(`(?i)(HttpGet|HttpPost|HttpURLConnection)\s*\(`), "medium"},
 }
@@ -42,7 +41,8 @@ var ssrfPatterns = []secPattern{
 // SecurityScan detects Command Injection, Path Traversal, and SSRF patterns.
 func SecurityScan(staged []string) CheckResult {
 	result := CheckResult{OK: true}
-	allPatterns := append(append(cmdPatterns, pathPatterns...), ssrfPatterns...)
+	allPatterns := make([]secPattern, 0, len(cmdPatterns)+len(pathPatterns)+len(ssrfPatterns))
+	allPatterns = append(append(append(allPatterns, cmdPatterns...), pathPatterns...), ssrfPatterns...)
 
 	for _, file := range staged {
 		data, err := shared.SafeReadFile(file)
@@ -50,16 +50,14 @@ func SecurityScan(staged []string) CheckResult {
 			continue
 		}
 		lines := strings.Split(string(data), "\n")
-		inBlockComment := false
+		blockDepth := 0
 		for i, line := range lines {
-			if inBlockComment {
-				if strings.Contains(line, "*/") {
-					inBlockComment = false
-				}
-				continue
+			// Track /* ... */ block comments (depth counter handles nesting)
+			blockDepth += strings.Count(line, "/*") - strings.Count(line, "*/")
+			if blockDepth < 0 {
+				blockDepth = 0
 			}
-			if strings.Contains(line, "/*") && !strings.Contains(line, "*/") {
-				inBlockComment = true
+			if blockDepth > 0 {
 				continue
 			}
 			trimmed := strings.TrimSpace(line)
@@ -70,7 +68,7 @@ func SecurityScan(staged []string) CheckResult {
 				if p.regex.MatchString(line) {
 					result.Findings = append(result.Findings, Finding{
 						File: file, Line: i + 1,
-						Pattern:  fmt.Sprintf("%s: %s", file, p.name),
+						Pattern:  p.name,
 						Severity: p.severity,
 					})
 				}

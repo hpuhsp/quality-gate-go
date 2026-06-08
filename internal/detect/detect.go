@@ -2,10 +2,11 @@
 package detect
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 // Result holds detected project metadata.
@@ -69,7 +70,7 @@ func Detect(root string) Result {
 	}
 
 	// Dockerfile
-	r.HasDockerfile = shared.FileExists(filepath.Join(root, "Dockerfile")) || shared.FileExists(filepath.Join(root, filepath.Join("docker", "Dockerfile")))
+	r.HasDockerfile = shared.FileExists(filepath.Join(root, "Dockerfile")) || shared.FileExists(filepath.Join(root, "docker", "Dockerfile"))
 
 	return r
 }
@@ -97,6 +98,9 @@ func hasGoTestFiles(root string) bool {
 		if err != nil || found {
 			return nil
 		}
+		if d.IsDir() && (d.Name() == "node_modules" || d.Name() == "vendor" || d.Name() == ".git") {
+			return filepath.SkipDir
+		}
 		if strings.HasSuffix(p, "_test.go") {
 			found = true
 		}
@@ -104,8 +108,6 @@ func hasGoTestFiles(root string) bool {
 	})
 	return found
 }
-
-
 
 func dirExists(p string) bool {
 	info, err := os.Stat(p)

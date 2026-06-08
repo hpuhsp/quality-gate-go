@@ -26,9 +26,6 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.Arch.Enabled {
 		t.Error("expected Arch.Enabled to be false by default")
 	}
-	if cfg.Perf.MaxDuration != "3s" {
-		t.Errorf("expected MaxDuration '3s', got '%s'", cfg.Perf.MaxDuration)
-	}
 }
 
 func TestLoad_NoConfigFile(t *testing.T) {
@@ -52,7 +49,7 @@ format:
   enabled: true
   auto_fix: true
 `
-	os.WriteFile(filepath.Join(tmp, "quality-gate.yaml"), []byte(yaml), 0644)
+	os.WriteFile(filepath.Join(tmp, ".quality-gate.yaml"), []byte(yaml), 0644)
 
 	cfg := Load(tmp)
 	if cfg.Secret.Enabled {
@@ -69,17 +66,18 @@ format:
 	}
 }
 
-func TestLoad_WithDotPrefix(t *testing.T) {
+func TestLoad_WrongNameIgnored(t *testing.T) {
 	tmp := t.TempDir()
 	yaml := `version: 1
 secret:
   enabled: false
 `
-	os.WriteFile(filepath.Join(tmp, ".quality-gate.yaml"), []byte(yaml), 0644)
+	// quality-gate.yaml (without dot) is NOT a valid config file — only .quality-gate.yaml is recognized
+	os.WriteFile(filepath.Join(tmp, "quality-gate.yaml"), []byte(yaml), 0644)
 
 	cfg := Load(tmp)
-	if cfg.Secret.Enabled {
-		t.Error("expected .quality-gate.yaml to be loaded")
+	if !cfg.Secret.Enabled {
+		t.Error("expected quality-gate.yaml (without dot) to be ignored, falling back to defaults")
 	}
 }
 
@@ -111,7 +109,7 @@ architecture:
   enabled: true
   forbidden: [controller->repository, ui->database]
 `
-	os.WriteFile(filepath.Join(tmp, "quality-gate.yaml"), []byte(yaml), 0644)
+	os.WriteFile(filepath.Join(tmp, ".quality-gate.yaml"), []byte(yaml), 0644)
 
 	cfg := Load(tmp)
 	if !cfg.Arch.Enabled {

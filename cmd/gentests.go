@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 // RunGenTests generates unit tests using Anthropic Claude API.
@@ -163,7 +164,8 @@ func callAnthropic(apiKey, prompt string) (string, error) {
 	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{Timeout: 120 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -193,7 +195,9 @@ func callAnthropic(apiKey, prompt string) (string, error) {
 
 func parseAndWriteTests(response, testDir, ext string) int {
 	written := 0
-	os.MkdirAll(testDir, 0755)
+	if testDir != "" {
+		os.MkdirAll(testDir, 0755)
+	}
 
 	// Extract code blocks with filenames
 	blocks := strings.Split(response, "```")

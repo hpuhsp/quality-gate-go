@@ -1,11 +1,12 @@
 package checker
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 type Finding struct {
@@ -51,7 +52,7 @@ var skipExt = regexp.MustCompile(`(?i)\.(png|jpe?g|gif|ico|svg|woff2?|ttf|eot|zi
 func SecretScan() CheckResult {
 	result := CheckResult{OK: true}
 
-	staged := getStagedFiles()
+	staged := GetStagedFiles()
 	if len(staged) == 0 {
 		return result
 	}
@@ -65,17 +66,14 @@ func SecretScan() CheckResult {
 			continue
 		}
 		lines := strings.Split(string(data), "\n")
-		inBlockComment := false
+		blockDepth := 0
 		for i, line := range lines {
-			// Track multi-line /* ... */ block comments
-			if inBlockComment {
-				if strings.Contains(line, "*/") {
-					inBlockComment = false
-				}
-				continue
+			// Track /* ... */ block comments (depth counter handles nesting)
+			blockDepth += strings.Count(line, "/*") - strings.Count(line, "*/")
+			if blockDepth < 0 {
+				blockDepth = 0
 			}
-			if strings.Contains(line, "/*") && !strings.Contains(line, "*/") {
-				inBlockComment = true
+			if blockDepth > 0 {
 				continue
 			}
 			trimmed := strings.TrimSpace(line)
@@ -101,10 +99,18 @@ func SecretScan() CheckResult {
 	return result
 }
 
-func getStagedFiles() []string {
+// emptyTreeHash is the git hash for an empty tree, used as a diff base for initial commits.
+const emptyTreeHash = "4b825dc642cb6eb9a060e54bf899d1530367ee21"
+
+// GetStagedFiles returns the list of staged files (compatible with initial commits that have no HEAD).
+func GetStagedFiles() []string {
 	out, err := exec.Command("git", "diff", "--cached", "--name-only", "--diff-filter=ACM").Output()
 	if err != nil {
-		return nil
+		// Fallback for initial commit (no HEAD yet): diff against the empty tree
+		out, err = exec.Command("git", "diff", "--cached", "--name-only", "--diff-filter=ACM", emptyTreeHash).Output()
+		if err != nil {
+			return nil
+		}
 	}
 	var files []string
 	for _, f := range strings.Split(strings.TrimSpace(string(out)), "\n") {

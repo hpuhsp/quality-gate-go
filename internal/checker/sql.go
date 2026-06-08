@@ -1,10 +1,10 @@
 package checker
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
-	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 var sqliPatterns = []struct {
@@ -28,7 +28,7 @@ var srcExt = regexp.MustCompile(`(?i)\.(java|kt|js|ts|py|php|vue)$`)
 
 func SQLCheck() CheckResult {
 	result := CheckResult{OK: true}
-	staged := getStagedFiles()
+	staged := GetStagedFiles()
 	if len(staged) == 0 {
 		return result
 	}
@@ -42,16 +42,14 @@ func SQLCheck() CheckResult {
 			continue
 		}
 		lines := strings.Split(string(data), "\n")
-		inBlockComment := false
+		blockDepth := 0
 		for i, line := range lines {
-			if inBlockComment {
-				if strings.Contains(line, "*/") {
-					inBlockComment = false
-				}
-				continue
+			// Track /* ... */ block comments (depth counter handles nesting)
+			blockDepth += strings.Count(line, "/*") - strings.Count(line, "*/")
+			if blockDepth < 0 {
+				blockDepth = 0
 			}
-			if strings.Contains(line, "/*") && !strings.Contains(line, "*/") {
-				inBlockComment = true
+			if blockDepth > 0 {
 				continue
 			}
 			trimmed := strings.TrimSpace(line)
@@ -75,11 +73,4 @@ func SQLCheck() CheckResult {
 		}
 	}
 	return result
-}
-
-// PrintSQLLines formats SQL findings.
-func PrintSQLLines(findings []Finding) {
-	for _, f := range findings {
-		fmt.Printf("  %s:%d — %s [%s]\n", f.File, f.Line, f.Pattern, f.Severity)
-	}
 }

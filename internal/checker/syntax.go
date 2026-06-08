@@ -1,37 +1,38 @@
 package checker
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 // Pre-compiled regex patterns (package level, not recompiled per call)
 var (
-	tagRe       = regexp.MustCompile(`</?([a-zA-Z][\w-]*)`)
+	tagRe = regexp.MustCompile(`</?([a-zA-Z][\w-]*)`)
 	// Match empty catch blocks including those with only comments inside
 	emptyCatchRe = regexp.MustCompile(`catch\s*\([^)]*\)\s*\{\s*(?://[^\n]*)?\s*\}`)
-	ifdefRe    = regexp.MustCompile(`(?m)^#ifdef|#ifndef|#if\b`)
-	endifRe    = regexp.MustCompile(`(?m)^#endif`)
+	ifdefRe      = regexp.MustCompile(`(?m)^#ifdef|#ifndef|#if\b`)
+	endifRe      = regexp.MustCompile(`(?m)^#endif`)
 )
 
 var extToLang = map[string]string{
 	".java": "java", ".kt": "kotlin", ".kts": "kotlin",
 	".js": "js", ".jsx": "js", ".ts": "ts", ".tsx": "ts",
 	".vue": "vue",
-	".cs": "csharp",
+	".cs":  "csharp",
 	".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp", ".h": "cpp", ".hpp": "cpp",
-	".go": "go",
+	".go":    "go",
 	".swift": "swift",
-	".m": "objc", ".mm": "objc",
+	".m":     "objc", ".mm": "objc",
 }
 
 func getStagedSrc() []string {
-	files := getStagedFiles()
+	files := GetStagedFiles()
 	var src []string
 	// Ignore obvious binary/image extensions
 	ignored := map[string]bool{
@@ -68,7 +69,7 @@ func SyntaxCheck() CheckResult {
 		} else {
 			issues = checkFile(file, lang)
 		}
-		
+
 		for _, issue := range issues {
 			result.Findings = append(result.Findings, Finding{
 				File: file, Line: 0, Pattern: issue, Severity: "error",
@@ -76,7 +77,6 @@ func SyntaxCheck() CheckResult {
 			result.OK = false
 		}
 	}
-
 
 	return result
 }
@@ -120,8 +120,50 @@ func checkBrackets(content, file string) []string {
 	var issues []string
 	stack := make([]rune, 0)
 	pairs := map[rune]rune{'{': '}', '[': ']', '(': ')'}
+	inLineComment := false
+	inBlockComment := false
+	inString := false
+	prev := rune(0)
 
 	for _, ch := range content {
+		if inLineComment {
+			if ch == '\n' {
+				inLineComment = false
+			}
+			prev = ch
+			continue
+		}
+		if inBlockComment {
+			if prev == '*' && ch == '/' {
+				inBlockComment = false
+			}
+			prev = ch
+			continue
+		}
+		if inString {
+			if ch == '"' && prev != '\\' {
+				inString = false
+			}
+			prev = ch
+			continue
+		}
+		if prev == '/' && ch == '/' {
+			inLineComment = true
+			prev = ch
+			continue
+		}
+		if prev == '/' && ch == '*' {
+			inBlockComment = true
+			prev = ch
+			continue
+		}
+		if ch == '"' {
+			inString = true
+			prev = ch
+			continue
+		}
+		prev = ch
+
 		if ch == '{' || ch == '[' || ch == '(' {
 			stack = append(stack, ch)
 		} else if ch == '}' || ch == ']' || ch == ')' {
@@ -190,8 +232,9 @@ func checkJVM(content, file string) []string {
 	if matched := emptyCatchRe.MatchString(content); matched {
 		issues = append(issues, fmt.Sprintf("%s: empty catch block(s)", file))
 	}
-	// Unclosed string
-	if strings.Count(content, "\"")%2 != 0 {
+	// Unclosed string — skip escaped quotes (\") when counting
+	unescaped := strings.ReplaceAll(content, "\\\"", "")
+	if strings.Count(unescaped, "\"")%2 != 0 {
 		issues = append(issues, fmt.Sprintf("%s: unclosed string literal", file))
 	}
 	return issues
@@ -246,9 +289,10 @@ func checkBracketsAndQuotes(file string) []string {
 	if strings.Count(str, "[") != strings.Count(str, "]") {
 		issues = append(issues, "Unmatched brackets []")
 	}
-    // simple single/double quotes check (naive, even counts)
-    if strings.Count(str, "\"") % 2 != 0 {
-        issues = append(issues, "Unmatched double quotes \"")
-    }
+	// simple single/double quotes check (skip escaped quotes)
+	unescapedQ := strings.ReplaceAll(str, "\\\"", "")
+	if strings.Count(unescapedQ, "\"")%2 != 0 {
+		issues = append(issues, "Unmatched double quotes \"")
+	}
 	return issues
 }

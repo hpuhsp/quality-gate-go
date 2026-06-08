@@ -21,7 +21,6 @@ func TestFileExists(t *testing.T) {
 	tmp := t.TempDir()
 	testFile := filepath.Join(tmp, "exists.txt")
 	os.WriteFile(testFile, []byte("test"), 0644)
-	defer os.Remove(testFile)
 
 	if !FileExists(testFile) {
 		t.Error("expected file to exist")
