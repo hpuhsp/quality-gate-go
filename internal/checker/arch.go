@@ -9,13 +9,21 @@ import (
 	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
+// Pre-compiled import extraction regexes (package level, compiled once).
+var (
+	reJavaImport = regexp.MustCompile(`(?m)^import\s+([\w.]+)`)
+	reGoImport   = regexp.MustCompile(`"([\w./-]+)"`)
+	reJSImport   = regexp.MustCompile(`(?m)(?:import|from)\s+['"]([^'"]+)['"]`)
+)
+
 // ArchCheck validates architectural layer constraints.
 // Uses regex to detect class/layer from file paths and imports.
 //
 // Example rules:
-//   controller->repository (forbidden)
-//   ui->database (forbidden)
-//   domain->infrastructure (forbidden)
+//
+//	controller->repository (forbidden)
+//	ui->database (forbidden)
+//	domain->infrastructure (forbidden)
 func ArchCheck(staged []string, cfg config.ArchConfig) CheckResult {
 	result := CheckResult{OK: true}
 	if !cfg.Enabled || len(cfg.Forbidden) == 0 {
@@ -47,7 +55,7 @@ func ArchCheck(staged []string, cfg config.ArchConfig) CheckResult {
 		"service":        regexp.MustCompile(`(?i)(service|usecase|interactor)`),
 		"repository":     regexp.MustCompile(`(?i)(repository|repo|dao|mapper)`),
 		"domain":         regexp.MustCompile(`(?i)(domain|model|entity|aggregate)`),
-		"infrastructure":  regexp.MustCompile(`(?i)(infra|infrastructure|persistence|external)`),
+		"infrastructure": regexp.MustCompile(`(?i)(infra|infrastructure|persistence|external)`),
 		"ui":             regexp.MustCompile(`(?i)(view|component|page|widget|screen)`),
 		"database":       regexp.MustCompile(`(?i)(database|db|migration|schema|sql)`),
 	}
@@ -123,17 +131,17 @@ func classifyImport(imp string, patterns map[string]*regexp.Regexp) string {
 func extractImports(content string) []string {
 	var imports []string
 	// Java/Kotlin: import com.example.controller.UserController
-	for _, m := range regexp.MustCompile(`(?m)^import\s+([\w.]+)`).FindAllStringSubmatch(content, -1) {
+	for _, m := range reJavaImport.FindAllStringSubmatch(content, -1) {
 		imports = append(imports, m[1])
 	}
 	// Go: import "github.com/user/repo/controller"
-	for _, m := range regexp.MustCompile(`"([\w./-]+)"`).FindAllStringSubmatch(content, -1) {
+	for _, m := range reGoImport.FindAllStringSubmatch(content, -1) {
 		if strings.Contains(m[1], ".") || strings.Contains(m[1], "/") {
 			imports = append(imports, m[1])
 		}
 	}
 	// JS/TS: import X from './controller/UserController'
-	for _, m := range regexp.MustCompile(`(?m)(?:import|from)\s+['"]([^'"]+)['"]`).FindAllStringSubmatch(content, -1) {
+	for _, m := range reJSImport.FindAllStringSubmatch(content, -1) {
 		imports = append(imports, m[1])
 	}
 	return imports

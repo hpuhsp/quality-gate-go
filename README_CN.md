@@ -46,7 +46,7 @@ quality-gate status         # 查看状态
 
 | 闸门 | 检查内容 | 速度 |
 |------|---------|:----:|
-| 🔑 **密钥扫描** | 密码、API Key、Token + **Shannon 熵值检测**（32+ 规则） | <1s |
+| 🔑 **密钥扫描** | 密码、API Key、Token + **Shannon 熵值检测**（18 规则） | <1s |
 | 📝 **语法检查** | 括号不匹配、空 catch、预处理失衡（10 种语言） | <2s |
 | 🛡️ **安全扫描** | SQL 注入 + 命令注入 + 路径穿越 + SSRF | <1s |
 | ✨ **自动格式化** | ktlint / prettier / google-java-format（提交时自动修正） | 随工具 |
@@ -55,11 +55,11 @@ quality-gate status         # 查看状态
 
 ## 支持语言
 
-Java · Kotlin · JavaScript · TypeScript · Go · C# · C++ · Vue · Swift · Objective-C · Python
+Java · Kotlin · JavaScript · TypeScript · Go · C# · C++ · Vue · Swift · Objective-C
 
 ## 配置文件
 
-在项目根目录创建 `quality-gate.yaml` 自定义闸门：
+在项目根目录创建 `.quality-gate.yaml` 自定义闸门：
 
 ```yaml
 version: 1
@@ -82,13 +82,9 @@ lint:
 
 architecture:
   enabled: false
-  forbidden:             # 架构层约束
-    - controller->repository
-    - ui->database
-    - domain->infrastructure
+  forbidden: [controller->repository, ui->database, domain->infrastructure]  # 架构层约束
 
-performance:
-  max_duration: 3s       # 钩子最大执行时间
+# 所有闸门使用合理默认值，无需配置文件。
 ```
 
 无需配置文件——所有闸门使用合理默认值。
@@ -120,13 +116,13 @@ quality-gate disable      # 取消 core.hooksPath，钩子停止运行
 
 - **零文件侵入**：用 `git config core.hooksPath`，不污染项目目录
 - **零运行时依赖**：单 Go 二进制，不需要 Node.js/Python
-- **可配置**：每道闸门可通过 `quality-gate.yaml` 独立开关
+- **可配置**：每道闸门可通过 `.quality-gate.yaml` 独立开关
 - **极快**：6 道闸门通常在 3 秒内完成
 
 ## 团队配置
 
 ```yaml
-# quality-gate.yaml 放在项目根目录
+# .quality-gate.yaml 放在项目根目录
 # 提交到仓库——团队共享同一套规则
 version: 1
 security:
@@ -135,9 +131,7 @@ lint:
   enabled: true
 architecture:
   enabled: true
-  forbidden:
-    - controller->repository
-    - ui->database
+  forbidden: [controller->repository, ui->database]
 ```
 
 ## 为什么选择 quality-gate-go？
@@ -146,15 +140,15 @@ architecture:
 |---|---|---|
 | **依赖** | 需要 Node.js 运行时 | 单 Go 二进制 |
 | **启动** | ~200ms | <10ms |
-| **多语言** | 专注 JS/TS | 支持 11 种语言 |
-| **密钥检测** | 无内置 | 32 规则 + 熵值检测 |
+| **多语言** | 专注 JS/TS | 支持 10 种语言 |
+| **密钥检测** | 无内置 | 18 规则 + 熵值检测 |
 | **安全规则** | 无内置 | SQL/命令注入/路径穿越/SSRF |
 | **架构规则** | 无内置 | 层依赖约束 |
-| **配置** | `.huskyrc` | `quality-gate.yaml` |
+| **配置** | `.huskyrc` | `.quality-gate.yaml` |
 
 ## 配置示例
 
 - [Java / Spring Boot](examples/java/.quality-gate.yaml)
 - [Android (Kotlin/Gradle)](examples/android/.quality-gate.yaml)
 - [Vue / 前端](examples/vue/.quality-gate.yaml)
-- [Uni-app](examples/uni-app/package.json)
+- [iOS (Swift/ObjC)](examples/ios/.quality-gate.yaml)

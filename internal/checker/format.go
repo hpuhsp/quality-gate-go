@@ -1,17 +1,16 @@
 package checker
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os/exec"
 	"path/filepath"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
-func FormatCheck(proj detect.Result) (ok bool, issues []string) {
-	ok = true
-	staged := getStagedFiles()
+func FormatCheck(proj detect.Result, autoFix bool) (ok bool, issues []string) {
+	staged := GetStagedFiles()
 	if len(staged) == 0 {
 		return
 	}
@@ -20,9 +19,15 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 	case "kotlin":
 		if shared.HasBin("ktlint") {
 			ktFiles := filterByExt(staged, ".kt")
-			if formatFiles("ktlint", ktFiles...) {
-				for _, f := range ktFiles {
-					exec.Command("git", "add", f).Run()
+			if autoFix {
+				if formatFiles("ktlint", append([]string{"-F"}, ktFiles...)...) {
+					for _, f := range ktFiles {
+						exec.Command("git", "add", "--", f).Run()
+					}
+				}
+			} else {
+				if !formatFiles("ktlint", ktFiles...) {
+					issues = append(issues, "Kotlin formatting issues found (run with auto_fix:true or fix manually)")
 				}
 			}
 		} else if len(filterByExt(staged, ".kt")) > 0 {
@@ -31,9 +36,15 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 	case "java":
 		if shared.HasBin("google-java-format") {
 			javaFiles := filterByExt(staged, ".java")
-			if formatFiles("google-java-format", append([]string{"--replace"}, javaFiles...)...) {
-				for _, f := range javaFiles {
-					exec.Command("git", "add", f).Run()
+			if autoFix {
+				if formatFiles("google-java-format", append([]string{"--replace"}, javaFiles...)...) {
+					for _, f := range javaFiles {
+						exec.Command("git", "add", "--", f).Run()
+					}
+				}
+			} else {
+				if !formatFiles("google-java-format", append([]string{"--dry-run", "--set-exit-if-changed"}, javaFiles...)...) {
+					issues = append(issues, "Java formatting issues found (run with auto_fix:true or fix manually)")
 				}
 			}
 		} else if len(filterByExt(staged, ".java")) > 0 {
@@ -42,20 +53,45 @@ func FormatCheck(proj detect.Result) (ok bool, issues []string) {
 	case "javascript":
 		if shared.HasBin("prettier") || shared.HasBin("npx") {
 			jsFiles := filterByExt(staged, ".js", ".ts", ".jsx", ".tsx", ".json", ".css", ".md", ".yml", ".yaml", ".vue")
-			args := []string{"prettier", "--write"}
-			if !shared.HasBin("prettier") {
-				args = []string{"npx", "prettier", "--write"}
+			if len(jsFiles) == 0 {
+				break
 			}
-			if len(jsFiles) > 0 {
-				exec.Command(args[0], append(args[1:], jsFiles...)...).Run()
+			bin := "prettier"
+			if !shared.HasBin("prettier") {
+				bin = "npx"
+			}
+			if autoFix {
+				exec.Command(bin, append([]string{"prettier", "--write"}, jsFiles...)...).Run()
 				for _, f := range jsFiles {
-					exec.Command("git", "add", f).Run()
+					exec.Command("git", "add", "--", f).Run()
+				}
+			} else {
+				if err := exec.Command(bin, append([]string{"prettier", "--check"}, jsFiles...)...).Run(); err != nil {
+					issues = append(issues, "JS/TS formatting issues found (run with auto_fix:true or fix manually)")
 				}
 			}
 		} else if len(filterByExt(staged, ".js", ".ts")) > 0 {
 			issues = append(issues, "prettier not installed — JS/TS formatting skipped")
 		}
+	case "go":
+		if shared.HasBin("gofmt") {
+			goFiles := filterByExt(staged, ".go")
+			for _, f := range goFiles {
+				if autoFix {
+					exec.Command("gofmt", "-w", f).Run()
+					exec.Command("git", "add", "--", f).Run()
+				} else {
+					out, _ := exec.Command("gofmt", "-d", f).Output()
+					if len(out) > 0 {
+						issues = append(issues, fmt.Sprintf("Go formatting issues in %s (run with auto_fix:true or fix manually)", f))
+					}
+				}
+			}
+		} else if len(filterByExt(staged, ".go")) > 0 {
+			issues = append(issues, "gofmt not installed — Go formatting skipped")
+		}
 	}
+	ok = len(issues) == 0
 	return
 }
 
@@ -81,7 +117,6 @@ func formatFiles(cmd string, files ...string) bool {
 	err := c.Run()
 	return err == nil
 }
-
 
 func PrintFormatIssues(issues []string) {
 	for _, i := range issues {

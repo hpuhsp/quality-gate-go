@@ -1,7 +1,21 @@
 # Quality Gate Config for Vue / React / Frontend
-minCoverage: "80"
-autoFormat: "true"
-runTestsOnPush: "yes"
-  # Fast local linting for JS and Vue components
-  "*.vue": "npx eslint --quiet"
-  "*.js": "npx eslint --quiet"
+version: 1
+
+secret:
+  enabled: true
+
+syntax:
+  enabled: true
+
+security:
+  enabled: true
+
+format:
+  enabled: true
+  auto_fix: true
+
+lint:
+  enabled: false
+
+architecture:
+  enabled: false

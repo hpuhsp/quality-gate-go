@@ -1,9 +1,21 @@
-# Quality Gate Config for Android
-minCoverage: "0"
-autoFormat: "true"
-runTestsOnPush: "no"
-  # Catch gradle configuration issues quickly
-  "*.gradle": "./gradlew properties --dry-run -q"
-  "*.gradle.kts": "./gradlew properties --dry-run -q"
-  # Run ktlint for kotlin files if installed
-  "*.kt": "ktlint"
+# Quality Gate Config for Android (Kotlin/Gradle)
+version: 1
+
+secret:
+  enabled: true
+
+syntax:
+  enabled: true
+
+security:
+  enabled: true
+
+format:
+  enabled: true
+  auto_fix: true
+
+lint:
+  enabled: false
+
+architecture:
+  enabled: false

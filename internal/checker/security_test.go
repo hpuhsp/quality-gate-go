@@ -42,7 +42,7 @@ func securityScanDirect(files []string) CheckResult {
 		{"File with concat", regexp.MustCompile(`(?i)new\s+File(?:InputStream|Reader)?\s*\([^)]*\+`), "high"},
 	}
 	ssrfPats := []sp{
-		{"URL from user input", regexp.MustCompile(`(?i)new\s+(URL|URI)\s*\(`), "high"},
+		{"URL constructed with input", regexp.MustCompile(`(?i)new\s+(URL|URI)\s*\([^)]*\+`), "high"},
 		{"HTTP with concat", regexp.MustCompile(`(?i)(fetch|axios|requests\.get)\s*\(\s*[^)]*\+`), "high"},
 	}
 	allPats := append(append(cmdPats, pathPats...), ssrfPats...)
@@ -113,10 +113,10 @@ os.system("ls " + user_input)`)
 }
 
 func TestSecurityScan_DetectsURLConstruction(t *testing.T) {
-	f := secTempFile(t, "app.java", `URL url = new URL(userInput)`)
+	f := secTempFile(t, "app.java", `URL url = new URL("https://" + userInput)`)
 	result := securityScanDirect([]string{f})
 	if result.OK {
-		t.Error("expected URL from user input to be detected")
+		t.Error("expected URL constructed with user input to be detected")
 	}
 }
 

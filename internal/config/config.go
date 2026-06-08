@@ -1,5 +1,5 @@
 // Package config provides configuration loading for quality-gate.
-// Reads quality-gate.yaml from the repo root, with sensible defaults.
+// Reads .quality-gate.yaml from the repo root, with sensible defaults.
 package config
 
 import (
@@ -13,14 +13,13 @@ import (
 
 // Config represents the quality-gate configuration.
 type Config struct {
-	Version  int           `yaml:"version"`
-	Secret   GateConfig    `yaml:"secret"`
-	Syntax   GateConfig    `yaml:"syntax"`
-	Format   FormatConfig  `yaml:"format"`
-	Lint     GateConfig    `yaml:"lint"`
-	Security GateConfig    `yaml:"security"`
-	Arch     ArchConfig    `yaml:"architecture"`
-	Perf     PerfConfig    `yaml:"performance"`
+	Version  int          `yaml:"version"`
+	Secret   GateConfig   `yaml:"secret"`
+	Syntax   GateConfig   `yaml:"syntax"`
+	Format   FormatConfig `yaml:"format"`
+	Lint     GateConfig   `yaml:"lint"`
+	Security GateConfig   `yaml:"security"`
+	Arch     ArchConfig   `yaml:"architecture"`
 }
 
 type GateConfig struct {
@@ -33,12 +32,8 @@ type FormatConfig struct {
 }
 
 type ArchConfig struct {
-	Enabled    bool     `yaml:"enabled"`
-	Forbidden  []string `yaml:"forbidden"`
-}
-
-type PerfConfig struct {
-	MaxDuration string `yaml:"max_duration"`
+	Enabled   bool     `yaml:"enabled"`
+	Forbidden []string `yaml:"forbidden"`
 }
 
 // DefaultConfig returns sensible defaults (all gates enabled).
@@ -51,21 +46,16 @@ func DefaultConfig() Config {
 		Lint:     GateConfig{Enabled: false}, // disabled until linters installed
 		Security: GateConfig{Enabled: true},
 		Arch:     ArchConfig{Enabled: false},
-		Perf:     PerfConfig{MaxDuration: "3s"},
 	}
 }
 
-// Load reads quality-gate.yaml or .quality-gate.yaml from root, falling back to defaults.
+// Load reads .quality-gate.yaml from root, falling back to defaults.
 func Load(root string) Config {
 	cfg := DefaultConfig()
 
-	// Try both filenames: quality-gate.yaml first, then .quality-gate.yaml
-	configPath := filepath.Join(root, "quality-gate.yaml")
+	configPath := filepath.Join(root, ".quality-gate.yaml")
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		configPath = filepath.Join(root, ".quality-gate.yaml")
-		if _, err := os.Stat(configPath); os.IsNotExist(err) {
-			return cfg
-		}
+		return cfg
 	}
 
 	f, err := os.Open(configPath)
@@ -74,11 +64,16 @@ func Load(root string) Config {
 	}
 	defer f.Close()
 
-	// Minimal YAML parser — handles flat keys and top-level sections
+	// Minimal YAML parser — handles flat keys, top-level sections, and inline comments
 	section := ""
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+
+		// Strip inline comments (e.g., "enabled: true  # comment")
+		if idx := strings.Index(line, " #"); idx >= 0 {
+			line = strings.TrimSpace(line[:idx])
+		}
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
@@ -99,20 +94,35 @@ func Load(root string) Config {
 
 		switch section {
 		case "secret":
-			if key == "enabled" { cfg.Secret.Enabled = parseBool(val) }
+			if key == "enabled" {
+				cfg.Secret.Enabled = parseBool(val)
+			}
 		case "syntax":
-			if key == "enabled" { cfg.Syntax.Enabled = parseBool(val) }
+			if key == "enabled" {
+				cfg.Syntax.Enabled = parseBool(val)
+			}
 		case "format":
-			if key == "enabled" { cfg.Format.Enabled = parseBool(val) }
-			if key == "auto_fix" { cfg.Format.AutoFix = parseBool(val) }
+			if key == "enabled" {
+				cfg.Format.Enabled = parseBool(val)
+			}
+			if key == "auto_fix" {
+				cfg.Format.AutoFix = parseBool(val)
+			}
 		case "lint":
-			if key == "enabled" { cfg.Lint.Enabled = parseBool(val) }
+			if key == "enabled" {
+				cfg.Lint.Enabled = parseBool(val)
+			}
 		case "security":
-			if key == "enabled" { cfg.Security.Enabled = parseBool(val) }
+			if key == "enabled" {
+				cfg.Security.Enabled = parseBool(val)
+			}
 		case "architecture":
-			if key == "enabled" { cfg.Arch.Enabled = parseBool(val) }
+			if key == "enabled" {
+				cfg.Arch.Enabled = parseBool(val)
+			}
 			if key == "forbidden" {
 				// Parse inline array: [controller->repository, ui->database]
+				// NOTE: only inline [a, b] format is supported, not YAML dash-lists
 				inner := strings.Trim(val, "[]")
 				if inner != "" {
 					cfg.Arch.Forbidden = strings.Split(inner, ",")
@@ -121,29 +131,18 @@ func Load(root string) Config {
 					}
 				}
 			}
-		case "performance":
-			if key == "max_duration" { cfg.Perf.MaxDuration = val }
 		}
 	}
 
-	return cfg
-}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "quality-gate: config scan error: %v\n", err)
+	}
 
-// LoadProjectConfig loads the per-repo config (~/.quality-gate/quality-gate.yaml).
-func LoadProjectConfig() Config {
-	home, _ := os.UserHomeDir()
-	return Load(filepath.Join(home, ".quality-gate"))
+	return cfg
 }
 
 func parseBool(s string) bool {
 	s = strings.ToLower(strings.TrimSpace(s))
 	b, _ := strconv.ParseBool(s)
 	return b
-}
-
-// String returns a human-readable config summary.
-func (c Config) String() string {
-	return fmt.Sprintf("secret=%v syntax=%v format=%v lint=%v security=%v arch=%v",
-		c.Secret.Enabled, c.Syntax.Enabled, c.Format.Enabled,
-		c.Lint.Enabled, c.Security.Enabled, c.Arch.Enabled)
 }

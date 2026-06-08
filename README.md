@@ -46,7 +46,7 @@ quality-gate status         # See what's active and detected
 
 | Gate | What it catches | Speed |
 |------|----------------|:----:|
-| 🔑 **Secret Scan** | Passwords, API keys, tokens + **Shannon entropy detection** (32+ patterns) | <1s |
+| 🔑 **Secret Scan** | Passwords, API keys, tokens + **Shannon entropy detection** (18 patterns) | <1s |
 | 📝 **Syntax Check** | Bracket mismatch, empty catch, preprocessor imbalance (10 languages) | <2s |
 | 🛡️ **Security Scan** | SQL injection + Command Injection + Path Traversal + SSRF | <1s |
 | ✨ **Auto-Format** | ktlint / prettier / google-java-format (auto-fixed on commit) | varies |
@@ -55,11 +55,11 @@ quality-gate status         # See what's active and detected
 
 ## Supported Languages
 
-Java · Kotlin · JavaScript · TypeScript · Go · C# · C++ · Vue · Swift · Objective-C · Python
+Java · Kotlin · JavaScript · TypeScript · Go · C# · C++ · Vue · Swift · Objective-C
 
 ## Configuration
 
-Create `quality-gate.yaml` in your project root to customize gates:
+Create `.quality-gate.yaml` in your project root to customize gates:
 
 ```yaml
 version: 1
@@ -82,13 +82,9 @@ lint:
 
 architecture:
   enabled: false
-  forbidden:             # Architecture layer constraints
-    - controller->repository
-    - ui->database
-    - domain->infrastructure
+  forbidden: [controller->repository, ui->database, domain->infrastructure]  # Layer constraints
 
-performance:
-  max_duration: 3s       # Max commit hook duration
+# All gates run with sensible defaults; no config file is required.
 ```
 
 No config file needed — all gates run with sensible defaults.
@@ -120,13 +116,13 @@ quality-gate disable      # Removes core.hooksPath — hooks stop running
 
 - **Zero project files**: uses `git config core.hooksPath`, not `.pre-commit-config.yaml`
 - **Zero runtime deps**: single Go binary, no Node.js/Python required
-- **Configurable**: per-gate enable/disable via `quality-gate.yaml`
+- **Configurable**: per-gate enable/disable via `.quality-gate.yaml`
 - **Fast**: all 6 gates complete in under 3 seconds for typical commits
 
 ## Team Config
 
 ```yaml
-# quality-gate.yaml in your project root
+# .quality-gate.yaml in your project root
 # Commit this file — team shares the same rules
 version: 1
 security:
@@ -135,9 +131,7 @@ lint:
   enabled: true
 architecture:
   enabled: true
-  forbidden:
-    - controller->repository
-    - ui->database
+  forbidden: [controller->repository, ui->database]
 ```
 
 ## Why quality-gate-go?
@@ -146,15 +140,15 @@ architecture:
 |---|---|---|
 | **Dependencies** | Node.js runtime required | Single Go binary |
 | **Startup** | ~200ms | <10ms |
-| **Multi-language** | JS/TS focused | 11 languages supported |
-| **Secret detection** | Not built-in | 32 patterns + entropy |
+| **Multi-language** | JS/TS focused | 10 languages supported |
+| **Secret detection** | Not built-in | 18 patterns + entropy |
 | **Security rules** | Not built-in | SQL/CMD/Path/SSRF |
 | **Architecture rules** | Not built-in | Layer constraints |
-| **Config** | `.huskyrc` | `quality-gate.yaml` |
+| **Config** | `.huskyrc` | `.quality-gate.yaml` |
 
 ## Configuration Examples
 
 - [Java / Spring Boot](examples/java/.quality-gate.yaml)
 - [Android (Kotlin/Gradle)](examples/android/.quality-gate.yaml)
 - [Vue / Frontend](examples/vue/.quality-gate.yaml)
-- [Uni-app](examples/uni-app/package.json)
+- [iOS (Swift/ObjC)](examples/ios/.quality-gate.yaml)

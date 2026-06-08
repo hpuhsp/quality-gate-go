@@ -12,8 +12,8 @@ import (
 // This catches secrets that don't match any known pattern (e.g., base64-encoded keys).
 
 const (
-	entropyThreshold = 4.5  // bits per character
-	minEntropyLen    = 20   // minimum string length to consider
+	entropyThreshold = 4.5 // bits per character
+	minEntropyLen    = 20  // minimum string length to consider
 )
 
 // entropyStrings extracts high-entropy strings from source code.
@@ -68,13 +68,22 @@ func shannonEntropy(s string) float64 {
 }
 
 // isCommonNonSecret filters out strings that are high-entropy but not secrets.
+
+var (
+	reUUID       = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+	reGitSHA     = regexp.MustCompile(`(?i)^[0-9a-f]{40}$`)
+	reHexShort   = regexp.MustCompile(`^[0-9a-fA-F]{16,64}$`)
+	reDomain     = regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$`)
+	reHexOrMixed = regexp.MustCompile(`[a-fA-F]{4,}`)
+)
+
 func isCommonNonSecret(s string) bool {
 	// UUIDs: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-	if matched, _ := regexp.MatchString(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, s); matched {
+	if reUUID.MatchString(s) {
 		return true
 	}
 	// Git SHAs
-	if matched, _ := regexp.MatchString(`^[0-9a-f]{40}$`, s); matched {
+	if reGitSHA.MatchString(s) {
 		return true
 	}
 	// Base64-encoded images/data (very long, starts with known prefixes)
@@ -82,12 +91,12 @@ func isCommonNonSecret(s string) bool {
 		return true
 	}
 	// Hex strings (color codes, hashes)
-	if matched, _ := regexp.MatchString(`^[0-9a-fA-F]+$`, s); matched && len(s) < 64 {
+	if reHexOrMixed.MatchString(s) && len(s) < 64 {
 		return true
 	}
 	// URL-safe strings with dots (domain names encoded)
 	// Only skip if it looks like a real domain (word.tld pattern, not arbitrary dots)
-	if matched, _ := regexp.MatchString(`^[a-zA-Z0-9]+\.[a-zA-Z]{2,4}$`, s); matched {
+	if reDomain.MatchString(s) {
 		return true
 	}
 	return false

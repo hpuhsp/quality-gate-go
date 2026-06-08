@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"time"
 )
 
 // RunUpdate checks for the latest release and shows update instructions.
@@ -41,7 +42,8 @@ func RunUpdate() {
 }
 
 func fetchLatestTag() (string, error) {
-	resp, err := http.Get("https://api.github.com/repos/hpuhsp/quality-gate-go/releases/latest")
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get("https://api.github.com/repos/hpuhsp/quality-gate-go/releases/latest")
 	if err != nil {
 		return "", err
 	}

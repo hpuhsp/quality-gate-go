@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 func RunStatus() {
@@ -18,7 +19,7 @@ func RunStatus() {
 	if out, err := exec.Command("git", "config", "core.hooksPath").Output(); err == nil {
 		hooksPath = string(out)
 		if len(hooksPath) > 0 {
-			hooksPath = hooksPath[:len(hooksPath)-1] // trim newline
+			hooksPath = strings.TrimRight(hooksPath, "\n\r")
 		}
 	}
 
@@ -41,7 +42,7 @@ func RunStatus() {
 	fmt.Printf("  Test FW:     %s\n", proj.TestFramework)
 	fmt.Printf("  Has tests:   %s\n", boolIcon(proj.HasTests))
 	fmt.Println()
-	fmt.Printf("  Config:      %s\n", filepath.Join(home, ".quality-gate", "config.yml"))
+	fmt.Printf("  Config:      .quality-gate.yaml in project root\n")
 }
 
 func boolIcon(v bool) string {
@@ -57,4 +58,3 @@ func fileIcon(v bool) string {
 	}
 	return "❌ missing"
 }
-

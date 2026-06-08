@@ -21,8 +21,14 @@ func RunEnable() {
 	configDir := filepath.Join(home, ".quality-gate")
 	hooksDir := filepath.Join(configDir, "hooks")
 
-	os.MkdirAll(hooksDir, 0755)
-	os.MkdirAll(configDir, 0755)
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		fmt.Printf("❌ Cannot create hooks directory: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		fmt.Printf("❌ Cannot create config directory: %v\n", err)
+		os.Exit(1)
+	}
 
 	proj := detect.Detect(".")
 	exe, _ := os.Executable()
@@ -38,7 +44,7 @@ if QG=$(command -v quality-gate 2>/dev/null) && [ -n "$QG" ] && [ -x "$QG" ]; th
   exec "$QG" %s
 fi
 if [ -x "%s" ]; then exec "%s" %s; fi
-echo "quality-gate: not found. Run: npm install -g github:hpuhsp/quality-gate"
+echo "quality-gate: not found. Download from https://github.com/hpuhsp/quality-gate-go/releases"
 exit 1
 `, name, extraPath, name, exe, exe, name)
 	}
@@ -71,25 +77,15 @@ set "PATH=%s;%%PATH%%"
 		}
 	}
 
-	exec.Command("git", "config", "core.hooksPath", hooksDir).Run()
-
-	configPath := filepath.Join(configDir, "config.yml")
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		if err := os.WriteFile(configPath, []byte(`# quality-gate configuration
-minCoverage: 60
-autoFormat: true
-blockOnSecrets: true
-`), 0644); err != nil {
-			fmt.Printf("⚠️  Failed to write config: %v\n", err)
-		}
+	if err := exec.Command("git", "config", "core.hooksPath", hooksDir).Run(); err != nil {
+		fmt.Printf("⚠️  Failed to set git config: %v\n", err)
 	}
 
 	fmt.Printf("✅ quality-gate enabled\n")
-	fmt.Printf("   Hooks: %s\n", hooksDir)
-	fmt.Printf("   Config: %s\n", configPath)
+	fmt.Printf("   Hooks:  %s\n", hooksDir)
 	fmt.Printf("   Binary: %s (%s/%s)\n", exe, runtime.GOOS, runtime.GOARCH)
 	fmt.Printf("   Project: %s\n", proj.Language)
-	fmt.Printf("   Gates: secret-scan · syntax-check · sql-injection · auto-format\n")
+	fmt.Printf("   Gates: secret-scan · syntax-check · security-scan · auto-format · lint · architecture\n")
 	if runtime.GOOS == "windows" {
 		fmt.Printf("   Windows: .sh + .bat hooks generated\n")
 	} else {
@@ -219,6 +215,9 @@ func findJavaHome() string {
 }
 
 func RunDisable() {
-	exec.Command("git", "config", "--unset", "core.hooksPath").Run()
+	if err := exec.Command("git", "config", "--unset", "core.hooksPath").Run(); err != nil {
+		fmt.Printf("⚠️  quality-gate may not be enabled for this repo (%v)\n", err)
+		return
+	}
 	fmt.Println("✅ quality-gate disabled for this repo")
 }

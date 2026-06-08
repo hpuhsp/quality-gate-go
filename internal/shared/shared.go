@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 // HasBin checks whether a command exists in PATH.
@@ -23,6 +22,8 @@ func FileExists(path string) bool {
 }
 
 // RunInstall executes a shell command and returns combined output on failure.
+// WARNING: This function passes the command string to "sh -c". Only call it with
+// hardcoded, trusted command strings. Never pass user input to this function.
 func RunInstall(cmd string) error {
 	c := exec.Command("sh", "-c", cmd)
 	out, err := c.CombinedOutput()
@@ -32,29 +33,20 @@ func RunInstall(cmd string) error {
 	return nil
 }
 
-// Cached repo root — resolved once per process, never again.
-var (
-	repoRootOnce sync.Once
-	repoRootVal  string
-	repoRootErr  error
-)
-
-func cachedRepoRoot() (string, error) {
-	repoRootOnce.Do(func() {
-		out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
-		if err != nil {
-			repoRootErr = err
-			return
-		}
-		repoRootVal = strings.TrimSpace(string(out))
-		// Resolve symlinks (critical on macOS /var → /private/var)
-		real, _ := filepath.EvalSymlinks(repoRootVal)
-		if real != "" {
-			repoRootVal = real
-		}
-		repoRootVal = filepath.Clean(repoRootVal)
-	})
-	return repoRootVal, repoRootErr
+// repoRoot resolves the git repo root for the current working directory.
+// It is NOT cached — each call queries git. This avoids stale results when
+// the working directory changes (e.g., submodules, chained hooks).
+func repoRoot() (string, error) {
+	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return "", err
+	}
+	val := strings.TrimSpace(string(out))
+	// Resolve symlinks (critical on macOS /var → /private/var)
+	if real, err := filepath.EvalSymlinks(val); err == nil && real != "" {
+		val = real
+	}
+	return filepath.Clean(val), nil
 }
 
 // SafeReadFile reads a file with path traversal protection and 1MB size limit.
@@ -63,26 +55,30 @@ func SafeReadFile(file string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	realAbs, _ := filepath.EvalSymlinks(abs)
-	if realAbs != "" {
+	realAbs, err := filepath.EvalSymlinks(abs)
+	if err == nil && realAbs != "" {
 		abs = realAbs
 	}
 	clean := filepath.Clean(abs)
 
-	// Get repo root (cached)
-	repoRoot, rootErr := cachedRepoRoot()
+	// Get repo root (not cached — re-resolved each call for correctness)
+	gitRoot, rootErr := repoRoot()
 	if rootErr != nil {
 		return nil, fmt.Errorf("cannot verify path safety: not in a git repo (%v)", rootErr)
 	}
 
-	rel, err := filepath.Rel(repoRoot, clean)
+	rel, err := filepath.Rel(gitRoot, clean)
 	if err != nil || strings.HasPrefix(rel, "..") {
 		return nil, fmt.Errorf("path traversal blocked: %s (outside repo)", file)
 	}
 
-	// Skip files larger than 1MB
-	if info, err := os.Stat(clean); err != nil || info.Size() > 1<<20 {
-		return nil, fmt.Errorf("file too large or unreadable: %s", file)
+	// Read and validate size atomically via the file content
+	data, err := os.ReadFile(clean)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %s: %w", file, err)
 	}
-	return os.ReadFile(clean)
+	if len(data) > 1<<20 {
+		return nil, fmt.Errorf("file too large: %s (%d bytes)", file, len(data))
+	}
+	return data, nil
 }

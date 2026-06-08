@@ -19,7 +19,7 @@ func RunPreCommit() {
 	gatesPassed := 0
 
 	// Get staged files once (shared across all checkers)
-	staged := getStagedFiles()
+	staged := checker.GetStagedFiles()
 
 	// Gate 1: Secret scan (regex + entropy)
 	gatesTotal++
@@ -82,12 +82,12 @@ func RunPreCommit() {
 
 		if !sqlResult.OK {
 			fmt.Print("\n❌ SECURITY CHECK FAILED\n")
-			checker.PrintSQLLines(sqlResult.Findings)
+			checker.PrintFindings(sqlResult.Findings)
 			fmt.Print("  Fix: use parameterized queries, avoid Runtime.exec with user input.\n\n")
 			hasErrors = true
 		} else if len(sqlResult.Findings) > 0 {
 			fmt.Println("⚠️  Security: review these patterns")
-			checker.PrintSQLLines(sqlResult.Findings)
+			checker.PrintFindings(sqlResult.Findings)
 		} else {
 			gatesPassed++
 		}
@@ -98,9 +98,9 @@ func RunPreCommit() {
 	// Gate 4: Auto-format (always counted, warning-only if formatter missing)
 	gatesTotal++
 	if cfg.Format.Enabled && proj.Language != "unknown" {
-		_, issues := checker.FormatCheck(proj)
+		_, issues := checker.FormatCheck(proj, cfg.Format.AutoFix)
 		if len(issues) > 0 {
-			fmt.Println("⚠️  Formatter not available:")
+			fmt.Println("⚠️  Format issues detected:")
 			checker.PrintFormatIssues(issues)
 		} else {
 			gatesPassed++
@@ -153,21 +153,6 @@ func RunPreCommit() {
 		tags += ")"
 	}
 	fmt.Printf("✅ pre-commit passed%s\n", tags)
-}
-
-// getStagedFiles returns the list of staged files (called once, reused).
-func getStagedFiles() []string {
-	out, err := runCmd("git", "diff", "--cached", "--name-only", "--diff-filter=ACM")
-	if err != nil {
-		return nil
-	}
-	var files []string
-	for _, f := range splitLines(out) {
-		if f != "" {
-			files = append(files, f)
-		}
-	}
-	return files
 }
 
 // runEntropyScan runs entropy-based secret detection on staged files.

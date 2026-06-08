@@ -8,9 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hpuhsp/quality-gate-go/internal/shared"
-
 	"github.com/hpuhsp/quality-gate-go/internal/detect"
+	"github.com/hpuhsp/quality-gate-go/internal/shared"
 )
 
 type toolDep struct {
@@ -34,11 +33,6 @@ func langDeps(lang string) []toolDep {
 }
 
 func RunSetup() {
-	home, _ := os.UserHomeDir()
-	configDir := filepath.Join(home, ".quality-gate")
-	os.MkdirAll(configDir, 0755)
-	configPath := filepath.Join(configDir, "config.yml")
-
 	// Detect project
 	proj := detect.Detect(".")
 
@@ -82,7 +76,7 @@ Press Enter to accept defaults.
 			if answer == "y" || answer == "Y" || answer == "yes" || answer == "" {
 				for _, d := range missing {
 					fmt.Printf("  Installing %s...\n", d.bin)
-					err := runInstallCmd(d.install)
+					err := shared.RunInstall(d.install)
 					if err != nil {
 						fmt.Printf("    ❌ Failed: %v\n", err)
 						fmt.Printf("    Manual: %s\n", d.install)
@@ -95,49 +89,58 @@ Press Enter to accept defaults.
 		}
 	}
 
-	// ── Step 3: AI Test Generation ────────────────────────────────────
+	// ── Step 3: Auto-format preference ─────────────────────────────────
+	fmt.Println("─── Code Formatting ───")
+	autoFmt := prompt("Auto-format code on commit?", "yes")
+	fmt.Println()
+
+	// ── Step 4: AI Test Generation ─────────────────────────────────────
 	fmt.Println("─── AI Test Generation ───")
-	fmt.Println("quality-gate can auto-generate unit tests using AI.")
+	fmt.Println("quality-gate can auto-generate unit tests using AI (requires ANTHROPIC_API_KEY).")
 	apiKey := prompt("Anthropic API Key (sk-ant-..., leave empty to skip)", "")
 
-	// ── Step 4: Test execution ─────────────────────────────────────────
-	fmt.Println("\n─── Test Execution ───")
-	fmt.Println("  ✅ yes — Run tests locally on git push (slower)")
-	fmt.Println("  ❌ no  — Let CI handle tests (recommended for teams)")
-	pushTests := prompt("Run unit tests on git push?", "no")
-
-	// ── Step 5: Formatting ─────────────────────────────────────────────
-	fmt.Println("\n─── Code Formatting ───")
-	autoFmt := prompt("Auto-format code on commit?", "yes")
-
-	// ── Step 6: Coverage ───────────────────────────────────────────────
-	minCov := prompt("Minimum test coverage %", "60")
-
-	// ── Write config ───────────────────────────────────────────────────
+	// ── Write config to project root ───────────────────────────────────
+	projectConfigPath := filepath.Join(".", ".quality-gate.yaml")
 	config := fmt.Sprintf(`# quality-gate configuration
 # Generated: %s
-minCoverage: %s
-autoFormat: %s
-runTestsOnPush: %s
-`, timestamp(), minCov, yesNo(autoFmt), yesNo(pushTests))
+version: 1
+
+secret:
+  enabled: true
+
+syntax:
+  enabled: true
+
+security:
+  enabled: true
+
+format:
+  enabled: true
+  auto_fix: %s
+
+lint:
+  enabled: false
+
+architecture:
+  enabled: false
+`, timestamp(), yesNo(autoFmt))
 
 	if apiKey != "" {
-		config += "\n# Store API keys in environment, not config files\n"
-		config += "# Run: export ANTHROPIC_API_KEY=sk-ant-...\n"
+		config += "\n# ⚠️  API key NOT stored here. Set it in your shell:\n"
+		config += "#   export ANTHROPIC_API_KEY=sk-ant-...\n"
 	}
 
-	if err := os.WriteFile(configPath, []byte(config), 0644); err != nil {
+	if err := os.WriteFile(projectConfigPath, []byte(config), 0644); err != nil {
 		fmt.Printf("❌ Failed to write config: %v\n", err)
 		os.Exit(1)
 	}
 
-	// ── API key note ──────────────────────────────────────────────────
 	if apiKey != "" {
-		fmt.Printf("\n⚠️  API key NOT stored. Persist it:\n")
-		fmt.Print("   echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc\n")
+		fmt.Printf("\n⚠️  API key NOT stored in config. Persist it:\n")
+		fmt.Printf("   echo 'export ANTHROPIC_API_KEY=<your-key>' >> ~/.zshrc\n")
 	}
 
-	fmt.Printf("\n✅ Setup complete! Config: %s\n\n", configPath)
+	fmt.Printf("\n✅ Setup complete! Config: %s\n\n", projectConfigPath)
 	fmt.Println("Next:")
 	fmt.Println("  quality-gate enable    Activate hooks for this repo")
 	fmt.Println("  quality-gate status    Verify everything is working")
@@ -167,12 +170,6 @@ func yesNo(s string) string {
 	return "false"
 }
 
-// runInstallCmd delegates to shared.RunInstall.
-func runInstallCmd(cmd string) error {
-	return shared.RunInstall(cmd)
-}
-
 func timestamp() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
-// Feature: Async Nudge & Interactive Setup implemented

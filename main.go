@@ -55,7 +55,7 @@ func printHelp() {
   doctor      Check & auto-install dependencies
   update      Update to latest version
   version     Show version information
-  enable      Activate 4-gate pre-commit hook
+  enable      Activate 6-gate pre-commit hook
   disable     Deactivate hooks
   status      Show status and project detection
   tool        Optional tools (test generation, etc.)

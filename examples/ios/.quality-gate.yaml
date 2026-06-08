@@ -1,6 +1,21 @@
-# Quality Gate Config for iOS (Swift/Objective-C)
-minCoverage: "50"
-autoFormat: "false" # Formatting is often handled by Xcode automatically
-runTestsOnPush: "no"
-  # Fast linting for Swift files
-  "*.swift": "swiftlint lint --quiet"
+# Quality Gate Config for iOS (Swift/ObjC)
+version: 1
+
+secret:
+  enabled: true
+
+syntax:
+  enabled: true
+
+security:
+  enabled: true
+
+format:
+  enabled: true
+  auto_fix: false
+
+lint:
+  enabled: false
+
+architecture:
+  enabled: false

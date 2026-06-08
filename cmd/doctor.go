@@ -114,7 +114,7 @@ func RunDoctor() {
 			continue
 		}
 		fmt.Printf("Installing %s...\n", d.name)
-		err := runInstall(d.install)
+		err := shared.RunInstall(d.install)
 		if err != nil {
 			fmt.Printf("  ❌ Failed: %v\n", err)
 		} else {
@@ -123,10 +123,4 @@ func RunDoctor() {
 	}
 
 	fmt.Println("\nRun 'quality-gate doctor' again to verify.")
-}
-
-
-// runInstall delegates to shared.RunInstall.
-func runInstall(cmd string) error {
-	return shared.RunInstall(cmd)
 }

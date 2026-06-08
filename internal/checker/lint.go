@@ -20,13 +20,18 @@ import (
 //	Kotlin  → detekt
 //	JS/TS   → eslint
 //	Vue     → eslint + vue plugin
-//	Python  → ruff check
 func LintCheck(proj detect.Result, staged []string) CheckResult {
 	result := CheckResult{OK: true}
 
 	switch proj.Language {
 	case "go":
-		return runLinter("golangci-lint", []string{"run", "--new-from-rev=HEAD~1", "--out-format=line-number"}, staged, "go")
+		// Check if HEAD~1 exists (i.e., repo has at least one parent commit)
+		args := []string{"run", "--new-from-rev=HEAD~1", "--out-format=line-number"}
+		if err := exec.Command("git", "rev-parse", "HEAD~1").Run(); err != nil {
+			// Initial commit — no parent; lint all staged Go files without new-from-rev
+			args = []string{"run", "--out-format=line-number"}
+		}
+		return runLinter("golangci-lint", args, staged, "go")
 	case "java":
 		return runLinter("pmd", []string{"check", "-d", ".", "-R", "rulesets/java/quickstart.xml", "-f", "text"}, staged, "java")
 	case "kotlin":
@@ -42,7 +47,7 @@ func LintCheck(proj detect.Result, staged []string) CheckResult {
 func runLinter(cmdName string, args []string, staged []string, lang string) CheckResult {
 	result := CheckResult{OK: true}
 
-	if !hasBin(cmdName) {
+	if !shared.HasBin(cmdName) {
 		// Linter not installed — report as info, not error
 		fmt.Printf("  ℹ️  %s not installed (%s lint skipped)\n", cmdName, lang)
 		return result
@@ -51,10 +56,10 @@ func runLinter(cmdName string, args []string, staged []string, lang string) Chec
 	// Filter staged files to language-specific ones
 	var langFiles []string
 	extMap := map[string][]string{
-		"go":   {".go"},
-		"java": {".java"},
+		"go":     {".go"},
+		"java":   {".java"},
 		"kotlin": {".kt", ".kts"},
-		"js":   {".js", ".ts", ".jsx", ".tsx", ".vue"},
+		"js":     {".js", ".ts", ".jsx", ".tsx", ".vue"},
 	}
 	exts := extMap[lang]
 	for _, f := range staged {
@@ -92,9 +97,4 @@ func runLinter(cmdName string, args []string, staged []string, lang string) Chec
 	}
 
 	return result
-}
-
-// hasBin delegates to shared.HasBin.
-func hasBin(name string) bool {
-	return shared.HasBin(name)
 }
